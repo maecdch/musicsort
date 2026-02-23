@@ -1,0 +1,5 @@
+{
+  "name": "MusicSorter - 网易云歌单智能分类",
+  "description": "使用 AI 技术自动分析并分类你的网易云音乐歌单，支持按风格、情绪等维度整理并一键导出新歌单。",
+  "requestFramePermissions": []
+}
