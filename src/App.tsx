@@ -32,6 +32,7 @@ function cn(...inputs: ClassValue[]) {
 export default function App() {
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [playlistData, setPlaylistData] = useState<any>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [categories, setCategories] = useState<CategorizedSongs[]>([]);
@@ -49,6 +50,9 @@ export default function App() {
     if (cookie) {
       fetchUserAccount(cookie);
     }
+    return () => {
+      if (qrCheckTimer.current) clearInterval(qrCheckTimer.current);
+    };
   }, [cookie]);
 
   const fetchUserAccount = async (ck: string) => {
@@ -57,30 +61,64 @@ export default function App() {
       const data = await res.json();
       if (data.profile) {
         setUser(data.profile);
-      } else {
+      } else if (data.code === 401 || data.code === -1) {
+        // Only clear if explicitly unauthorized
         setCookie(null);
         localStorage.removeItem('netease_cookie');
       }
     } catch (e) {
-      console.error(e);
+      console.error('Fetch user account error:', e);
     }
   };
 
   const startQrLogin = async () => {
+    setLoginLoading(true);
+    setError(null);
     try {
       const keyRes = await fetch('/api/login/qr/key');
-      const { unikey } = (await keyRes.json()).data;
+      const keyData = await keyRes.json();
+      
+      if (keyRes.status !== 200) {
+        throw new Error(keyData.error || '获取登录 Key 失败');
+      }
+      
+      if (keyData.code && keyData.code !== 200) {
+        throw new Error(keyData.message || `获取 Key 失败 (代码 ${keyData.code})`);
+      }
+      
+      if (!keyData.data?.unikey) {
+        throw new Error(keyData.message || '获取登录 Key 失败: API 未返回 unikey');
+      }
+      
+      const unikey = keyData.data.unikey;
       setQrKey(unikey);
 
       const qrRes = await fetch(`/api/login/qr/create?key=${unikey}`);
-      const { url } = (await qrRes.json()).data;
-      setQrUrl(url);
+      const qrData = await qrRes.json();
+      
+      if (qrRes.status !== 200) {
+        throw new Error(qrData.error || '生成二维码失败');
+      }
+
+      if (qrData.code && qrData.code !== 200) {
+        throw new Error(qrData.message || `生成二维码失败 (代码 ${qrData.code})`);
+      }
+      
+      const qrUrlValue = qrData.data?.url || qrData.data?.qrurl;
+      if (!qrUrlValue) {
+        throw new Error(qrData.message || `生成二维码失败: API 未返回 URL (Data: ${JSON.stringify(qrData.data)})`);
+      }
+      
+      setQrUrl(qrUrlValue);
       setQrStatus(801);
 
       if (qrCheckTimer.current) clearInterval(qrCheckTimer.current);
       qrCheckTimer.current = setInterval(() => checkQrStatus(unikey), 3000);
-    } catch (e) {
-      setError('无法启动二维码登录');
+    } catch (e: any) {
+      console.error('QR Login Start Error:', e);
+      setError(`登录失败: ${e.message}`);
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -162,35 +200,56 @@ export default function App() {
       return;
     }
 
+    if (!playlistData) {
+      setError('请先加载歌单数据');
+      return;
+    }
+
+    if (cat.songIds.length === 0) {
+      setError('该类别下没有有效的歌曲 ID');
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
       // 1. Create Playlist
+      // NetEase playlist names have a limit, usually around 40 characters.
+      // We'll be more conservative to avoid "title length anomaly" errors.
+      let playlistName = `${playlistData.name} - ${cat.category}`;
+      if (playlistName.length > 35) {
+        playlistName = `${cat.category} (${playlistData.name.slice(0, 20)}...)`;
+      }
+      // Final safety slice
+      playlistName = playlistName.slice(0, 35);
+
       const createRes = await fetch('/api/playlist/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: `${playlistData.name} - ${cat.category}`, cookie })
+        body: JSON.stringify({ name: playlistName, cookie: cookie.trim() })
       });
       const createData = await createRes.json();
       
-      if (createData.id) {
+      if (createData.id || createData.playlist?.id) {
+        const newPlaylistId = createData.id || createData.playlist?.id;
         // 2. Add Tracks
         const addRes = await fetch('/api/playlist/tracks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            pid: createData.id, 
+            pid: newPlaylistId, 
             ids: cat.songIds.join(','), 
-            cookie 
+            cookie: cookie.trim() 
           })
         });
         const addData = await addRes.json();
-        if (addData.body?.code === 200 || addData.code === 200) {
+        if (addData.code === 200 || addData.status === 200) {
           alert(`成功创建并导出歌单: ${cat.category}`);
         } else {
-          throw new Error('添加歌曲失败');
+          throw new Error(addData.message || '添加歌曲失败，请检查是否已达到歌单歌曲上限或网络问题');
         }
       } else {
-        throw new Error('创建歌单失败');
+        throw new Error(createData.message || '创建歌单失败，请检查登录状态或网络问题');
       }
     } catch (e: any) {
       setError(e.message);
@@ -226,9 +285,10 @@ export default function App() {
             ) : (
               <button 
                 onClick={startQrLogin}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-full text-sm font-medium hover:bg-zinc-800 transition-all active:scale-95"
+                disabled={loginLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-full text-sm font-medium hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50"
               >
-                <QrCode size={16} />
+                {loginLoading ? <Loader2 className="animate-spin" size={16} /> : <QrCode size={16} />}
                 登录网易云
               </button>
             )}
@@ -242,7 +302,7 @@ export default function App() {
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-bold text-zinc-900 mb-4"
+            className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4"
           >
             整理你的音乐世界
           </motion.h2>
@@ -250,29 +310,31 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-zinc-500 text-lg max-w-xl mx-auto"
+            className="text-zinc-500 text-base md:text-lg max-w-xl mx-auto"
           >
-            粘贴网易云歌单链接，让 Gemini AI 为你自动分类歌曲风格，并一键导出。
+            粘贴网易云歌单链接，让 DeepSeek AI 为你自动分类歌曲风格，并一键导出。
           </motion.p>
         </section>
 
         {/* Search Input */}
-        <div className="relative group mb-12">
-          <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-red-500 transition-colors">
-            <Search size={20} />
+        <div className="flex flex-col md:relative group mb-12 gap-3 md:gap-0">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-red-500 transition-colors">
+              <Search size={20} />
+            </div>
+            <input 
+              type="text" 
+              placeholder="粘贴歌单链接..."
+              className="w-full pl-14 pr-6 md:pr-32 py-4 md:py-5 bg-white border-2 border-zinc-100 rounded-2xl shadow-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-base md:text-lg"
+              value={playlistUrl}
+              onChange={(e) => setPlaylistUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchPlaylist()}
+            />
           </div>
-          <input 
-            type="text" 
-            placeholder="粘贴歌单链接，例如: https://music.163.com/#/playlist?id=..."
-            className="w-full pl-14 pr-32 py-5 bg-white border-2 border-zinc-100 rounded-2xl shadow-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-lg"
-            value={playlistUrl}
-            onChange={(e) => setPlaylistUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && fetchPlaylist()}
-          />
           <button 
             onClick={fetchPlaylist}
             disabled={loading || !playlistUrl}
-            className="absolute right-3 top-3 bottom-3 px-6 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 disabled:bg-zinc-200 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            className="md:absolute md:right-3 md:top-3 md:bottom-3 px-6 py-4 md:py-0 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 disabled:bg-zinc-200 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : '开始分析'}
           </button>
@@ -317,9 +379,29 @@ export default function App() {
                   {qrStatus === 802 && (
                     <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center rounded-2xl">
                       <CheckCircle2 className="text-green-500 mb-2" size={32} />
-                      <p className="text-sm font-bold">待确认...</p>
+                      <p className="text-sm font-bold">扫描成功</p>
+                      <p className="text-xs text-zinc-500">请在手机上确认登录</p>
                     </div>
                   )}
+                </div>
+
+                <div className="mb-6 space-y-4">
+                  <div>
+                    {qrStatus === 801 && <p className="text-xs text-zinc-400 italic">等待扫码...</p>}
+                    {qrStatus === 802 && <p className="text-xs text-blue-500 font-medium">已扫码，请确认</p>}
+                    {qrStatus === 803 && <p className="text-xs text-green-500 font-medium">登录成功！正在跳转...</p>}
+                  </div>
+
+                  {/* Mobile Deep Link */}
+                  <div className="block md:hidden">
+                    <a 
+                      href={`orpheus://openurl?url=${encodeURIComponent(qrUrl)}`}
+                      className="inline-block px-4 py-2 bg-red-50 text-red-600 rounded-full text-xs font-bold hover:bg-red-100 transition-colors"
+                    >
+                      在网易云音乐 App 中打开
+                    </a>
+                    <p className="text-[10px] text-zinc-400 mt-2">点击上方按钮可直接跳转 App 确认</p>
+                  </div>
                 </div>
 
                 <button 
@@ -422,7 +504,7 @@ export default function App() {
             {loading && categories.length === 0 && songs.length > 0 && (
               <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
                 <Loader2 className="animate-spin mb-4" size={40} />
-                <p className="text-lg font-medium">Gemini AI 正在深度分析中...</p>
+                <p className="text-lg font-medium">DeepSeek AI 正在深度分析中...</p>
                 <p className="text-sm">这可能需要几秒钟时间</p>
               </div>
             )}
@@ -432,7 +514,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-20 border-t border-zinc-100 py-12 text-center">
-        <p className="text-zinc-400 text-sm">© 2024 MusicSorter • Powered by Gemini AI & NetEase API</p>
+        <p className="text-zinc-400 text-sm">© 2026 MusicSorter • Designed by maec • Powered by DeepSeek AI & NetEase API</p>
       </footer>
     </div>
   );
