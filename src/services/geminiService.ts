@@ -20,11 +20,24 @@ export async function categorizeSongs(songs: Song[]): Promise<CategorizedSongs[]
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'AI 分类请求失败');
+      let errorMsg = 'AI 分类请求失败';
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.error || errorMsg;
+      } catch (e) {
+        const text = await response.text();
+        errorMsg = `服务器返回错误 (${response.status}): ${text.slice(0, 50)}...`;
+      }
+      throw new Error(errorMsg);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      const text = await response.text();
+      throw new Error(`AI 返回了非 JSON 数据: ${text.slice(0, 50)}...`);
+    }
     
     // Map indices back to actual IDs
     return data.map((item: any) => ({
