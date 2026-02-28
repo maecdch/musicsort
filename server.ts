@@ -151,7 +151,7 @@ app.post("/api/ai/categorize", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们分类到不同的音乐风格或情绪类别中。你必须返回一个 JSON 对象，包含一个名为 'categories' 的数组。数组中的每个对象必须包含：'category' (类别名称), 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始), 'description' (简短描述)。"
+            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们严格分类到不同的音乐风格或情绪类别中。你必须返回一个纯净的 JSON 对象，包含一个名为 'categories' 的数组。数组中的每个对象必须包含：'category' (类别名称), 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始), 'description' (简短描述)。不要包含任何额外的文字说明。"
           },
           {
             role: "user",
@@ -160,7 +160,8 @@ app.post("/api/ai/categorize", async (req, res) => {
         ],
         response_format: {
           type: "json_object"
-        }
+        },
+        max_tokens: 2048
       })
     });
 
@@ -173,12 +174,24 @@ app.post("/api/ai/categorize", async (req, res) => {
     const content = data.choices[0].message.content;
     let result;
     try {
-      // Clean the content if it contains markdown code blocks
-      const jsonStr = content.replace(/```json\n?|```/g, '').trim();
-      result = JSON.parse(jsonStr);
+      // 1. Try direct parse after basic cleaning
+      const cleanedContent = content.replace(/```json\n?|```/g, '').trim();
+      try {
+        result = JSON.parse(cleanedContent);
+      } catch (innerError) {
+        // 2. Try to extract JSON using regex if direct parse fails
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+        } else {
+          throw innerError;
+        }
+      }
     } catch (e) {
       console.error("Failed to parse DeepSeek JSON content:", content);
-      throw new Error("AI 返回了无效的 JSON 格式，请稍后再试。");
+      // Provide a bit more info in the error message for debugging
+      const snippet = content.length > 50 ? content.slice(0, 50) + "..." : content;
+      throw new Error(`AI 返回了无效的格式 (${snippet})。请尝试减少歌单歌曲数量或稍后再试。`);
     }
 
     // Normalize result: ensure we return an array

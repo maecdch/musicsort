@@ -230,9 +230,9 @@ export default function App() {
       
       if (data.playlist) {
         setPlaylistData(data.playlist);
-        const trackIds = data.playlist.trackIds.slice(0, 50).map((t: any) => t.id); // Limit to 50 for AI analysis speed
+        const trackIds = data.playlist.trackIds.slice(0, 30).map((t: any) => t.id); // Limit to 30 for AI stability
         
-        const songList: Song[] = data.playlist.tracks.slice(0, 50).map((t: any) => ({
+        const songList: Song[] = data.playlist.tracks.slice(0, 30).map((t: any) => ({
           id: t.id,
           name: t.name,
           artists: t.ar.map((a: any) => a.name),
