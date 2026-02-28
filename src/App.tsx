@@ -686,7 +686,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-20 border-t border-zinc-100 py-12 text-center">
-        <p className="text-zinc-400 text-sm">© 2026 MusicSorter • Designed by maec • Powered by DeepSeek AI & NetEase API</p>
+        <p className="text-zinc-400 text-sm">© 2026 MusicSorter • Designed by mayicheng • Powered by DeepSeek AI & NetEase API</p>
       </footer>
     </div>
   );

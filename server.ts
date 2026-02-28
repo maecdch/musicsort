@@ -151,7 +151,7 @@ app.post("/api/ai/categorize", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们分类到不同的音乐风格或情绪类别中。返回 JSON 数组，每个对象包含 category (类别名称), songIds (属于该类别的歌曲在原始列表中的索引数组), description (简短描述)。"
+            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们分类到不同的音乐风格或情绪类别中。你必须返回一个 JSON 对象，包含一个名为 'categories' 的数组。数组中的每个对象必须包含：'category' (类别名称), 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始), 'description' (简短描述)。"
           },
           {
             role: "user",
@@ -170,21 +170,30 @@ app.post("/api/ai/categorize", async (req, res) => {
       throw new Error(data.error.message || "DeepSeek API Error");
     }
 
-    // DeepSeek returns a string in content, we need to parse it
     const content = data.choices[0].message.content;
     let result;
     try {
-      // Sometimes models wrap JSON in markdown blocks
-      const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : content;
+      // Clean the content if it contains markdown code blocks
+      const jsonStr = content.replace(/```json\n?|```/g, '').trim();
       result = JSON.parse(jsonStr);
     } catch (e) {
       console.error("Failed to parse DeepSeek JSON content:", content);
-      throw new Error("AI 返回了无效的 JSON 格式");
+      throw new Error("AI 返回了无效的 JSON 格式，请稍后再试。");
     }
 
-    // Normalize result: if it's an object with a property containing the array, extract it
-    let categories = Array.isArray(result) ? result : (result.categories || result.items || []);
+    // Normalize result: ensure we return an array
+    let categories = [];
+    if (Array.isArray(result)) {
+      categories = result;
+    } else if (result.categories && Array.isArray(result.categories)) {
+      categories = result.categories;
+    } else if (result.items && Array.isArray(result.items)) {
+      categories = result.items;
+    } else {
+      // If it's an object but not in the expected format, try to find any array property
+      const arrayProp = Object.values(result).find(val => Array.isArray(val));
+      categories = arrayProp || [];
+    }
 
     res.json(categories);
   } catch (error: any) {
