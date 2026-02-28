@@ -17,7 +17,12 @@ import {
   ExternalLink,
   Plus,
   ArrowRight,
-  Filter
+  Filter,
+  Phone,
+  Lock,
+  Key,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -32,7 +37,13 @@ function cn(...inputs: ClassValue[]) {
 export default function App() {
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [loginLoading, setLoginLoading] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'qr' | 'phone' | 'cookie'>('qr');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [manualCookie, setManualCookie] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [playlistData, setPlaylistData] = useState<any>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [categories, setCategories] = useState<CategorizedSongs[]>([]);
@@ -83,6 +94,7 @@ export default function App() {
         const data = JSON.parse(text);
         if (data.profile) {
           setUser(data.profile);
+          setShowLoginModal(false);
         } else if (data.code === 401 || data.code === -1) {
           setCookie(null);
           localStorage.removeItem('netease_cookie');
@@ -95,7 +107,15 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    if (showLoginModal && loginMethod === 'qr' && !qrUrl) {
+      startQrLogin();
+    }
+  }, [showLoginModal, loginMethod]);
+
   const startQrLogin = async () => {
+    setQrUrl(null);
+    setQrStatus(801);
     setLoginLoading(true);
     setError(null);
     try {
@@ -196,6 +216,43 @@ export default function App() {
     localStorage.removeItem('netease_cookie');
   };
 
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone || !password) return;
+    setLoginLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/login/cellphone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password })
+      });
+      const data = await res.json();
+      if (data.code === 200) {
+        setCookie(data.cookie);
+        localStorage.setItem('netease_cookie', data.cookie);
+        fetchUserAccount(data.cookie);
+        setShowLoginModal(false);
+      } else {
+        throw new Error(data.message || '登录失败');
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleCookieLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualCookie) return;
+    setCookie(manualCookie);
+    localStorage.setItem('netease_cookie', manualCookie);
+    fetchUserAccount(manualCookie);
+    setManualCookie('');
+    setShowLoginModal(false);
+  };
+
   const fetchPlaylist = async () => {
     if (!playlistUrl) return;
     setLoading(true);
@@ -230,9 +287,25 @@ export default function App() {
       
       if (data.playlist) {
         setPlaylistData(data.playlist);
-        const trackIds = data.playlist.trackIds.slice(0, 30).map((t: any) => t.id); // Limit to 30 for AI stability
         
-        const songList: Song[] = data.playlist.tracks.slice(0, 30).map((t: any) => ({
+        // Fetch more tracks if needed
+        let allTracks = (data.playlist.tracks && data.playlist.tracks.length > 0) ? data.playlist.tracks : [];
+        if (allTracks.length < 500) {
+          try {
+            const tracksRes = await fetch(`/api/playlist/tracks/all?id=${id}&cookie=${encodeURIComponent(cookie || '')}`);
+            if (tracksRes.ok) {
+              const tracksData = await tracksRes.json();
+              if (tracksData.songs && tracksData.songs.length > allTracks.length) {
+                allTracks = tracksData.songs;
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to fetch all tracks, falling back to basic playlist tracks", e);
+          }
+        }
+
+        // Limit to 500 songs for a more comprehensive analysis
+        const songList: Song[] = allTracks.slice(0, 500).map((t: any) => ({
           id: t.id,
           name: t.name,
           artists: t.ar.map((a: any) => a.name),
@@ -241,9 +314,47 @@ export default function App() {
         
         setSongs(songList);
         
-        // Start AI Categorization
-        const categorized = await categorizeSongs(songList);
-        setCategories(categorized);
+        // Batch processing: 50 songs per batch
+        const BATCH_SIZE = 50;
+        const batches = [];
+        for (let i = 0; i < songList.length; i += BATCH_SIZE) {
+          batches.push(songList.slice(i, i + BATCH_SIZE));
+        }
+
+        const mergedCategories: CategorizedSongs[] = [];
+        setProgress({ current: 0, total: batches.length });
+
+        for (let i = 0; i < batches.length; i++) {
+          try {
+            // Update loading state with progress
+            setLoading(true); // Ensure loading is true
+            const batchResult = await categorizeSongs(batches[i]);
+            
+            // Merge results
+            batchResult.forEach(newCat => {
+              const existingCat = mergedCategories.find(c => 
+                c.category.toLowerCase() === newCat.category.toLowerCase() ||
+                newCat.category.toLowerCase().includes(c.category.toLowerCase()) ||
+                c.category.toLowerCase().includes(newCat.category.toLowerCase())
+              );
+
+              if (existingCat) {
+                // Merge song IDs, avoiding duplicates
+                const uniqueIds = new Set([...existingCat.songIds, ...newCat.songIds]);
+                existingCat.songIds = Array.from(uniqueIds);
+              } else {
+                mergedCategories.push(newCat);
+              }
+            });
+
+            // Update UI incrementally
+            setCategories([...mergedCategories]);
+            setProgress({ current: i + 1, total: batches.length });
+          } catch (batchError) {
+            console.error(`Error processing batch ${i}:`, batchError);
+            // Continue with next batch if one fails
+          }
+        }
       } else {
         throw new Error(data.error || '歌单不存在或无法访问');
       }
@@ -391,11 +502,11 @@ export default function App() {
               </div>
             ) : (
               <button 
-                onClick={startQrLogin}
+                onClick={() => setShowLoginModal(true)}
                 disabled={loginLoading}
                 className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-full text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-zinc-200"
               >
-                {loginLoading ? <Loader2 className="animate-spin" size={16} /> : <QrCode size={16} />}
+                {loginLoading ? <Loader2 className="animate-spin" size={16} /> : <LogOut size={16} className="rotate-180" />}
                 登录网易云
               </button>
             )}
@@ -460,14 +571,17 @@ export default function App() {
             animate={{ opacity: 1, scale: 1 }}
             className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600"
           >
-            <AlertCircle size={20} />
-            <p className="text-sm font-medium">{error}</p>
+            <AlertCircle size={20} className="shrink-0" />
+            <p className="text-sm font-medium flex-1">{error}</p>
+            <button onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded-lg transition-colors">
+              <X size={16} />
+            </button>
           </motion.div>
         )}
 
-        {/* QR Login Modal */}
+        {/* Login Modal */}
         <AnimatePresence>
-          {qrUrl && (
+          {showLoginModal && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -477,59 +591,185 @@ export default function App() {
               <motion.div 
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100"
+                className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border border-zinc-100 relative overflow-hidden"
               >
-                <h3 className="text-xl font-display font-bold mb-2 text-zinc-900">扫码登录</h3>
-                <p className="text-zinc-500 text-sm mb-8">请使用网易云音乐 App 扫描下方二维码</p>
-                
-                <div className="relative inline-block p-4 bg-zinc-50 rounded-2xl border border-zinc-100 mb-8">
-                  <QRCodeSVG value={qrUrl} size={180} />
-                  
-                  {qrStatus === 800 && (
-                    <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-2xl">
-                      <p className="text-sm font-bold text-red-500 mb-3">二维码已过期</p>
-                      <button 
-                        onClick={startQrLogin} 
-                        className="px-4 py-2 bg-zinc-900 text-white rounded-full text-xs font-bold hover:bg-zinc-800 transition-all"
-                      >
-                        点击刷新
-                      </button>
-                    </div>
-                  )}
-                  {qrStatus === 802 && (
-                    <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-2xl">
-                      <CheckCircle2 className="text-green-500 mb-2" size={32} />
-                      <p className="text-sm font-bold text-zinc-900">扫描成功</p>
-                      <p className="text-xs text-zinc-500 mt-1">请在手机上确认登录</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-8 space-y-4">
-                  <div className="h-6 flex items-center justify-center">
-                    {qrStatus === 801 && <p className="text-xs text-zinc-400 italic">等待扫码...</p>}
-                    {qrStatus === 802 && <p className="text-xs text-blue-500 font-bold">已扫码，请确认</p>}
-                    {qrStatus === 803 && <p className="text-xs text-green-500 font-bold">登录成功</p>}
-                  </div>
-
-                  {/* Mobile Deep Link */}
-                  <div className="block md:hidden">
-                    <a 
-                      href={`orpheus://openurl?url=${encodeURIComponent(qrUrl)}`}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100"
-                    >
-                      <ExternalLink size={14} />
-                      在 App 中打开
-                    </a>
-                  </div>
-                </div>
-
                 <button 
-                  onClick={() => setQrUrl(null)}
-                  className="w-full py-3 text-zinc-400 text-sm font-medium hover:text-zinc-900 transition-colors"
+                  onClick={() => setShowLoginModal(false)}
+                  className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
                 >
-                  取消登录
+                  <X size={20} />
                 </button>
+
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-display font-bold text-zinc-900 mb-2">登录网易云</h3>
+                  <p className="text-zinc-500 text-sm">选择最适合您的登录方式</p>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex p-1 bg-zinc-100 rounded-2xl mb-8">
+                  <button 
+                    onClick={() => setLoginMethod('qr')}
+                    className={cn(
+                      "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all",
+                      loginMethod === 'qr' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                    )}
+                  >
+                    扫码登录
+                  </button>
+                  <button 
+                    onClick={() => setLoginMethod('phone')}
+                    className={cn(
+                      "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all",
+                      loginMethod === 'phone' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                    )}
+                  >
+                    手机登录
+                  </button>
+                  <button 
+                    onClick={() => setLoginMethod('cookie')}
+                    className={cn(
+                      "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all",
+                      loginMethod === 'cookie' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                    )}
+                  >
+                    Cookie 登录
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="min-h-[280px] flex flex-col items-center justify-center">
+                  {loginMethod === 'qr' && (
+                    <div className="text-center w-full">
+                      {qrUrl ? (
+                        <div className="relative inline-block p-4 bg-zinc-50 rounded-3xl border border-zinc-100 mb-6 group">
+                          <QRCodeSVG value={qrUrl} size={180} />
+                          
+                          {qrStatus === 800 && (
+                            <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-3xl">
+                              <p className="text-sm font-bold text-red-500 mb-3">二维码已过期</p>
+                              <button 
+                                onClick={startQrLogin} 
+                                className="px-4 py-2 bg-zinc-900 text-white rounded-full text-xs font-bold hover:bg-zinc-800 transition-all"
+                              >
+                                点击刷新
+                              </button>
+                            </div>
+                          )}
+                          {qrStatus === 802 && (
+                            <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-3xl">
+                              <CheckCircle2 className="text-green-500 mb-2" size={32} />
+                              <p className="text-sm font-bold text-zinc-900">扫描成功</p>
+                              <p className="text-xs text-zinc-500 mt-1">请在手机上确认登录</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-[212px] h-[212px] bg-zinc-50 rounded-3xl flex items-center justify-center mb-6 border border-zinc-100">
+                          <Loader2 className="animate-spin text-zinc-300" size={32} />
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <div className="h-6 flex items-center justify-center">
+                          {qrStatus === 801 && <p className="text-xs text-zinc-400 italic">等待扫码...</p>}
+                          {qrStatus === 802 && <p className="text-xs text-blue-500 font-bold">已扫码，请确认</p>}
+                          {qrStatus === 803 && <p className="text-xs text-green-500 font-bold">登录成功</p>}
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          <a 
+                            href={`orpheus://openurl?url=${encodeURIComponent(qrUrl || '')}`}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-500 text-white rounded-2xl text-xs font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                          >
+                            <ExternalLink size={14} />
+                            在网易云 App 中打开
+                          </a>
+                          <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                            <p className="text-[10px] text-blue-700 leading-relaxed">
+                              <strong>QQ 登录提示：</strong> 请在网易云 App 中先绑定 QQ，然后使用 App 扫码即可同步登录。
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {loginMethod === 'phone' && (
+                    <form onSubmit={handlePhoneLogin} className="w-full space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">手机号码</label>
+                        <div className="relative">
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                          <input 
+                            type="text" 
+                            placeholder="请输入手机号"
+                            className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">登录密码</label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                          <input 
+                            type="password" 
+                            placeholder="请输入密码"
+                            className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <button 
+                        type="submit"
+                        disabled={loginLoading || !phone || !password}
+                        className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-xl shadow-zinc-100 flex items-center justify-center gap-2"
+                      >
+                        {loginLoading ? <Loader2 className="animate-spin" size={18} /> : '立即登录'}
+                      </button>
+                      <p className="text-[10px] text-zinc-400 text-center">我们不会存储您的密码，仅用于获取登录凭证</p>
+                    </form>
+                  )}
+
+                  {loginMethod === 'cookie' && (
+                    <form onSubmit={handleCookieLogin} className="w-full space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">MUSIC_U Cookie</label>
+                        <div className="relative">
+                          <Key className="absolute left-4 top-4 text-zinc-400" size={18} />
+                          <textarea 
+                            placeholder="粘贴您的网易云 Cookie..."
+                            className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm min-h-[120px] resize-none"
+                            value={manualCookie}
+                            onChange={(e) => setManualCookie(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <button 
+                        type="submit"
+                        disabled={!manualCookie}
+                        className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-xl shadow-zinc-100"
+                      >
+                        导入凭证
+                      </button>
+                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                        <p className="text-[10px] text-amber-700 leading-relaxed">
+                          <strong>提示：</strong> 如果扫码和手机登录均失败，请在浏览器登录网易云后，复制控制台中的 Cookie 粘贴至此。这是最稳定的登录方式。
+                        </p>
+                      </div>
+                    </form>
+                  )}
+                </div>
+
+                {/* Stability Note */}
+                <div className="mt-8 pt-6 border-t border-zinc-50 flex items-start gap-3">
+                  <HelpCircle className="text-zinc-300 shrink-0" size={16} />
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    由于服务器部署在海外，登录请求可能会受到网络波动影响。如果多次尝试失败，建议使用 <strong>手机登录</strong> 或 <strong>Cookie 导入</strong>。
+                  </p>
+                </div>
               </motion.div>
             </motion.div>
           )}
@@ -658,7 +898,20 @@ export default function App() {
                   </div>
                 </div>
                 <h3 className="text-2xl font-display font-bold text-zinc-900 mb-2">DeepSeek AI 正在深度分析中</h3>
-                <p className="text-zinc-400 text-sm animate-pulse">正在识别曲风、情绪与节奏...</p>
+                <p className="text-zinc-400 text-sm animate-pulse mb-4">正在识别 {songs.length} 首歌曲的曲风、情绪与节奏...</p>
+                {progress.total > 0 && (
+                  <div className="w-64 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-red-500"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(progress.current / progress.total) * 100}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                    <p className="text-[10px] text-zinc-400 mt-2 font-bold uppercase tracking-widest text-center">
+                      已完成 {progress.current} / {progress.total} 批次
+                    </p>
+                  </div>
+                )}
                 
                 {/* Skeleton Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-16 opacity-40">

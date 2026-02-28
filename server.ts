@@ -29,6 +29,23 @@ app.get("/api/playlist/:id", async (req, res) => {
   }
 });
 
+// 1.1 Get All Tracks in a Playlist
+app.get("/api/playlist/tracks/all", async (req, res) => {
+  console.log(`Fetching all tracks for playlist: ${req.query.id}`);
+  try {
+    const result = await NeteaseApi.playlist_track_all({
+      id: req.query.id as string,
+      limit: 500, // Limit to 500 for performance and AI cost
+      offset: 0,
+      cookie: (req.query.cookie as string) || req.headers.cookie || "",
+    });
+    res.json(result.body);
+  } catch (error: any) {
+    console.error(`Playlist tracks all error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 2. QR Login: Get Key
 app.get("/api/login/qr/key", async (req, res) => {
   console.log("Getting QR key...");
@@ -75,6 +92,36 @@ app.get("/api/login/qr/check", async (req, res) => {
   } catch (error: any) {
     console.error(`QR check error: ${error.message}`, error);
     res.status(500).json({ error: error.message, details: error.stack });
+  }
+});
+
+// 4.1 Cellphone Login
+app.post("/api/login/cellphone", async (req, res) => {
+  console.log(`Attempting cellphone login for: ${req.body.phone}`);
+  try {
+    const { phone, password, countrycode } = req.body;
+    const result = await NeteaseApi.login_cellphone({
+      phone,
+      password,
+      countrycode: countrycode || '86',
+    });
+    res.json(result.body);
+  } catch (error: any) {
+    console.error(`Cellphone login error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4.2 Login Status
+app.get("/api/login/status", async (req, res) => {
+  try {
+    const result = await NeteaseApi.login_status({
+      cookie: req.query.cookie as string,
+    });
+    res.json(result.body);
+  } catch (error: any) {
+    console.error(`Login status error: ${error.message}`);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -151,7 +198,7 @@ app.post("/api/ai/categorize", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们严格分类到不同的音乐风格或情绪类别中。你必须返回一个纯净的 JSON 对象，包含一个名为 'categories' 的数组。数组中的每个对象必须包含：'category' (类别名称), 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始), 'description' (简短描述)。不要包含任何额外的文字说明。"
+            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们严格分类到不同的音乐风格或情绪类别中。你必须确保列表中的每一首歌都被分配到至少一个类别中。返回一个纯净的 JSON 对象，包含一个名为 'categories' 的数组。数组中的每个对象必须包含：'category' (类别名称), 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始), 'description' (简短描述)。不要遗漏任何歌曲，不要包含任何额外的文字说明。"
           },
           {
             role: "user",
