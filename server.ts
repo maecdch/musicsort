@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import { createRequire } from "module";
 
 import NeteaseApi from "NeteaseCloudMusicApi";
@@ -198,14 +197,18 @@ app.post("/api/ai/categorize", async (req, res) => {
 async function setupVite() {
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     console.log("Initializing Vite middleware...");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-    console.log("Vite middleware initialized.");
+    try {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      console.log("Vite middleware initialized.");
+    } catch (e) {
+      console.error("Failed to initialize Vite middleware:", e);
+    }
   }
-  // In Vercel, static files are handled by vercel.json routes, so we don't need app.use(express.static("dist")) here
 }
 
 // Only start the server if this file is run directly (not as a serverless function)

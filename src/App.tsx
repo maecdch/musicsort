@@ -72,18 +72,23 @@ export default function App() {
   const fetchUserAccount = async (ck: string) => {
     try {
       const res = await fetch(`/api/user/account?cookie=${encodeURIComponent(ck)}`);
+      const text = await res.text();
+      
       if (!res.ok) {
-        const text = await res.text();
-        console.warn(`User account fetch failed (${res.status}):`, text);
+        console.warn(`User account fetch failed (${res.status}):`, text.slice(0, 100));
         return;
       }
-      const data = await res.json();
-      if (data.profile) {
-        setUser(data.profile);
-      } else if (data.code === 401 || data.code === -1) {
-        // Only clear if explicitly unauthorized
-        setCookie(null);
-        localStorage.removeItem('netease_cookie');
+      
+      try {
+        const data = JSON.parse(text);
+        if (data.profile) {
+          setUser(data.profile);
+        } else if (data.code === 401 || data.code === -1) {
+          setCookie(null);
+          localStorage.removeItem('netease_cookie');
+        }
+      } catch (e) {
+        console.error('Failed to parse user account JSON:', text.slice(0, 100));
       }
     } catch (e) {
       console.error('Fetch user account error:', e);
@@ -209,19 +214,18 @@ export default function App() {
       }
 
       const res = await fetch(`/api/playlist/${id}?cookie=${encodeURIComponent(cookie || '')}`);
+      const text = await res.text();
       
       if (!res.ok) {
-        const text = await res.text();
         throw new Error(`服务器返回错误 (${res.status}): ${text.slice(0, 100)}${text.length > 100 ? '...' : ''}`);
       }
 
       let data;
       try {
-        data = await res.json();
+        data = JSON.parse(text);
       } catch (e) {
-        const text = await res.text();
         console.error('JSON Parse Error. Response text:', text);
-        throw new Error(`服务器返回了非 JSON 格式的数据。这通常意味着请求被拦截或服务器报错。内容摘要: ${text.slice(0, 50)}...`);
+        throw new Error(`数据解析失败。服务器返回了非 JSON 格式的内容。内容摘要: ${text.slice(0, 50)}...`);
       }
       
       if (data.playlist) {
