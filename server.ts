@@ -7,10 +7,44 @@ const app = express();
 app.use(express.json());
 const PORT = 3000;
 
+// Default China IP to bypass regional restrictions
+const DEFAULT_CHINA_IP = "116.25.146.177";
+
+// Helper to get API config with realIP
+const getApiConfig = (req: express.Request, extra: any = {}) => {
+  const cookie = (req.query.cookie as string) || (req.body.cookie as string) || req.headers.cookie || "";
+  // Try to get user's real IP from headers, or use a default China IP
+  const realIP = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || DEFAULT_CHINA_IP;
+  
+  return {
+    cookie,
+    realIP,
+    ...extra
+  };
+};
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// --- Helper: Retry Logic for Network Instability ---
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`Attempt ${i + 1} failed: ${error.message}. Retrying in ${delay}ms...`);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      }
+    }
+  }
+  throw lastError;
+}
 
 // --- NetEase API Proxy Routes ---
 
@@ -18,10 +52,9 @@ app.get("/api/health", (req, res) => {
 app.get("/api/playlist/:id", async (req, res) => {
   console.log(`Fetching playlist: ${req.params.id}`);
   try {
-    const result = await NeteaseApi.playlist_detail({
+    const result = await withRetry(() => NeteaseApi.playlist_detail(getApiConfig(req, {
       id: req.params.id,
-      cookie: (req.query.cookie as string) || req.headers.cookie || "",
-    });
+    })));
     res.json(result.body);
   } catch (error: any) {
     console.error(`Playlist fetch error: ${error.message}`);
@@ -33,12 +66,11 @@ app.get("/api/playlist/:id", async (req, res) => {
 app.get("/api/playlist/tracks/all", async (req, res) => {
   console.log(`Fetching all tracks for playlist: ${req.query.id}`);
   try {
-    const result = await NeteaseApi.playlist_track_all({
+    const result = await withRetry(() => NeteaseApi.playlist_track_all(getApiConfig(req, {
       id: req.query.id as string,
-      limit: 500, // Limit to 500 for performance and AI cost
+      limit: 500,
       offset: 0,
-      cookie: (req.query.cookie as string) || req.headers.cookie || "",
-    });
+    })));
     res.json(result.body);
   } catch (error: any) {
     console.error(`Playlist tracks all error: ${error.message}`);
@@ -50,9 +82,9 @@ app.get("/api/playlist/tracks/all", async (req, res) => {
 app.get("/api/login/qr/key", async (req, res) => {
   console.log("Getting QR key...");
   try {
-    const result = await NeteaseApi.login_qr_key({
+    const result = await withRetry(() => NeteaseApi.login_qr_key(getApiConfig(req, {
       timestamp: Date.now(),
-    } as any);
+    })));
     console.log("QR Key Result:", JSON.stringify(result.body));
     res.json(result.body);
   } catch (error: any) {
@@ -65,11 +97,11 @@ app.get("/api/login/qr/key", async (req, res) => {
 app.get("/api/login/qr/create", async (req, res) => {
   console.log(`Creating QR for key: ${req.query.key}`);
   try {
-    const result = await NeteaseApi.login_qr_create({
+    const result = await withRetry(() => NeteaseApi.login_qr_create(getApiConfig(req, {
       key: req.query.key as string,
       qrimg: true,
       timestamp: Date.now(),
-    } as any);
+    })));
     console.log("QR Create Result:", JSON.stringify(result.body));
     res.json(result.body);
   } catch (error: any) {
@@ -81,10 +113,10 @@ app.get("/api/login/qr/create", async (req, res) => {
 // 4. QR Login: Check Status
 app.get("/api/login/qr/check", async (req, res) => {
   try {
-    const result = await NeteaseApi.login_qr_check({
+    const result = await withRetry(() => NeteaseApi.login_qr_check(getApiConfig(req, {
       key: req.query.key as string,
       timestamp: Date.now(),
-    } as any);
+    })));
     if (result.body.code === 803) {
       console.log("QR Login Success!");
     }
@@ -100,11 +132,11 @@ app.post("/api/login/cellphone", async (req, res) => {
   console.log(`Attempting cellphone login for: ${req.body.phone}`);
   try {
     const { phone, password, countrycode } = req.body;
-    const result = await NeteaseApi.login_cellphone({
+    const result = await withRetry(() => NeteaseApi.login_cellphone(getApiConfig(req, {
       phone,
       password,
       countrycode: countrycode || '86',
-    });
+    })));
     res.json(result.body);
   } catch (error: any) {
     console.error(`Cellphone login error: ${error.message}`);
@@ -115,9 +147,7 @@ app.post("/api/login/cellphone", async (req, res) => {
 // 4.2 Login Status
 app.get("/api/login/status", async (req, res) => {
   try {
-    const result = await NeteaseApi.login_status({
-      cookie: req.query.cookie as string,
-    });
+    const result = await withRetry(() => NeteaseApi.login_status(getApiConfig(req)));
     res.json(result.body);
   } catch (error: any) {
     console.error(`Login status error: ${error.message}`);
@@ -128,9 +158,7 @@ app.get("/api/login/status", async (req, res) => {
 // 5. Get User Info (to verify login)
 app.get("/api/user/account", async (req, res) => {
   try {
-    const result = await NeteaseApi.user_account({
-      cookie: req.query.cookie as string,
-    });
+    const result = await withRetry(() => NeteaseApi.user_account(getApiConfig(req)));
     res.json(result.body);
   } catch (error: any) {
     console.error(`User account error: ${error.message}`);
@@ -142,12 +170,11 @@ app.get("/api/user/account", async (req, res) => {
 app.post("/api/playlist/create", async (req, res) => {
   console.log(`Creating playlist: ${req.body.name}`);
   try {
-    const { name, cookie } = req.body;
-    const result = await NeteaseApi.playlist_create({
+    const { name } = req.body;
+    const result = await withRetry(() => NeteaseApi.playlist_create(getApiConfig(req, {
       name,
       privacy: 0,
-      cookie,
-    });
+    })));
     console.log("Playlist created:", result.body);
     res.json(result.body);
   } catch (error: any) {
@@ -160,13 +187,12 @@ app.post("/api/playlist/create", async (req, res) => {
 app.post("/api/playlist/tracks", async (req, res) => {
   console.log(`Adding tracks to playlist: ${req.body.pid}`);
   try {
-    const { pid, ids, cookie } = req.body;
-    const result = await NeteaseApi.playlist_tracks({
+    const { pid, ids } = req.body;
+    const result = await withRetry(() => NeteaseApi.playlist_tracks(getApiConfig(req, {
       op: 'add',
       pid,
       tracks: ids, // comma separated string
-      cookie,
-    });
+    })));
     console.log("Tracks added:", result.body);
     res.json(result.body);
   } catch (error: any) {

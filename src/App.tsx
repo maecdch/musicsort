@@ -22,7 +22,9 @@ import {
   Lock,
   Key,
   HelpCircle,
-  X
+  X,
+  Copy,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -43,6 +45,7 @@ export default function App() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [manualCookie, setManualCookie] = useState('');
+  const [showImportGuide, setShowImportGuide] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [playlistData, setPlaylistData] = useState<any>(null);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -365,9 +368,32 @@ export default function App() {
     }
   };
 
+  const copyToClipboard = (text: string, message: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(message);
+      setShowImportGuide(true); // Show guide after copying
+    }).catch(() => {
+      showToast('复制失败，请手动选择复制', 'error');
+    });
+  };
+
+  const downloadAsFile = (filename: string, content: string) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`已开始下载: ${filename}`);
+  };
+
   const exportCategory = async (cat: CategorizedSongs) => {
     if (!cookie) {
-      setError('请先登录网易云音乐');
+      setShowLoginModal(true);
+      setToast({ message: '请先登录网易云音乐以直接导出歌单', type: 'error' });
       return;
     }
 
@@ -736,11 +762,22 @@ export default function App() {
                   {loginMethod === 'cookie' && (
                     <form onSubmit={handleCookieLogin} className="w-full space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">MUSIC_U Cookie</label>
+                        <div className="flex items-center justify-between ml-1">
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">MUSIC_U Cookie</label>
+                          <a 
+                            href="https://github.com/Binaryify/NeteaseCloudMusicApi/issues/1118#issuecomment-853144882" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-red-500 font-bold hover:underline flex items-center gap-1"
+                          >
+                            <HelpCircle size={10} />
+                            如何获取？
+                          </a>
+                        </div>
                         <div className="relative">
                           <Key className="absolute left-4 top-4 text-zinc-400" size={18} />
                           <textarea 
-                            placeholder="粘贴您的网易云 Cookie..."
+                            placeholder="粘贴您的网易云 Cookie (MUSIC_U=...)"
                             className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm min-h-[120px] resize-none"
                             value={manualCookie}
                             onChange={(e) => setManualCookie(e.target.value)}
@@ -754,21 +791,50 @@ export default function App() {
                       >
                         导入凭证
                       </button>
-                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                        <p className="text-[10px] text-amber-700 leading-relaxed">
-                          <strong>提示：</strong> 如果扫码和手机登录均失败，请在浏览器登录网易云后，复制控制台中的 Cookie 粘贴至此。这是最稳定的登录方式。
+                      <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                        <p className="text-[10px] text-emerald-700 leading-relaxed">
+                          <strong>最稳方案：</strong> 浏览器登录网易云后，在 F12 控制台输入 <code>document.cookie</code>，复制 <code>MUSIC_U</code> 这一段即可。这不经过登录握手，直接生效。
                         </p>
                       </div>
                     </form>
                   )}
                 </div>
 
-                {/* Stability Note */}
-                <div className="mt-8 pt-6 border-t border-zinc-50 flex items-start gap-3">
-                  <HelpCircle className="text-zinc-300 shrink-0" size={16} />
-                  <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    由于服务器部署在海外，登录请求可能会受到网络波动影响。如果多次尝试失败，建议使用 <strong>手机登录</strong> 或 <strong>Cookie 导入</strong>。
-                  </p>
+                {/* Stability Note & Diagnosis */}
+                <div className="mt-8 pt-6 border-t border-zinc-50 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <HelpCircle className="text-zinc-300 shrink-0" size={16} />
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zinc-400 leading-relaxed">
+                        由于服务器部署在海外，登录请求可能会受到网络波动影响。
+                      </p>
+                      <p className="text-[10px] text-emerald-600 font-bold leading-relaxed">
+                        已开启 Real-IP 模拟优化，尝试绕过地域限制。
+                      </p>
+                      <p className="text-[10px] text-zinc-400 leading-relaxed">
+                        如果多次尝试失败，强烈建议使用 <strong>Cookie 导入</strong>。
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      const start = Date.now();
+                      try {
+                        const res = await fetch('/api/health');
+                        const end = Date.now();
+                        if (res.ok) {
+                          setToast({ message: `连接成功！延迟: ${end - start}ms`, type: 'success' });
+                        } else {
+                          setToast({ message: '连接失败，请检查网络', type: 'error' });
+                        }
+                      } catch (e) {
+                        setToast({ message: '无法连接到服务器', type: 'error' });
+                      }
+                    }}
+                    className="w-full py-2 border border-zinc-100 rounded-xl text-[10px] font-bold text-zinc-400 hover:bg-zinc-50 transition-all"
+                  >
+                    测试服务器连接
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
@@ -829,6 +895,102 @@ export default function App() {
           )}
 
           {/* Categories Grid */}
+          {categories.length > 0 && (
+            <div className="space-y-8">
+              {/* Tutorial Card */}
+              <AnimatePresence>
+                {showImportGuide && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-[2rem] p-8 relative">
+                      <button 
+                        onClick={() => setShowImportGuide(false)}
+                        className="absolute top-6 right-6 text-emerald-400 hover:text-emerald-600 transition-colors"
+                      >
+                        <X size={20} />
+                      </button>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                          <HelpCircle size={20} />
+                        </div>
+                        <h4 className="text-lg font-display font-bold text-emerald-900">如何使用“文本导入”？</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                          { step: '01', title: '点击复制', desc: '点击分类卡片右侧的复制图标，获取歌曲列表文本。' },
+                          { step: '02', title: '打开网易云', desc: '打开电脑端或手机 App，进入“我的音乐”或任意歌单。' },
+                          { step: '03', title: '文本导入', desc: '点击“导入外部歌单” -> “文本导入”，粘贴并确认即可。' }
+                        ].map((item, i) => (
+                          <div key={i} className="space-y-2">
+                            <div className="text-[10px] font-black text-emerald-300 tracking-widest">{item.step}</div>
+                            <div className="text-sm font-bold text-emerald-800">{item.title}</div>
+                            <div className="text-xs text-emerald-600 leading-relaxed">{item.desc}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-display font-bold text-zinc-900 mb-2">分类结果</h3>
+                  <div className="flex items-center gap-2">
+                    <p className="text-zinc-400 text-sm">AI 已将歌曲划分为 {categories.length} 个维度</p>
+                    <span className="text-zinc-200">|</span>
+                    <button 
+                      onClick={() => setShowImportGuide(!showImportGuide)}
+                      className="text-[10px] text-red-500 font-bold hover:underline flex items-center gap-1"
+                    >
+                      <HelpCircle size={10} />
+                      {showImportGuide ? '隐藏教程' : '查看文本导入教程'}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      const allText = categories.map(cat => {
+                        const songList = cat.songIds.map(id => {
+                          const s = songs.find(song => song.id === id);
+                          return s ? `${s.name} - ${s.artists.join(', ')}` : '';
+                        }).filter(Boolean).join('\n');
+                        return `### ${cat.category} ###\n${songList}`;
+                      }).join('\n\n');
+                      copyToClipboard(allText, '已复制所有分类的歌曲列表');
+                    }}
+                    className="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Copy size={14} />
+                    复制全部文本
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const allContent = categories.map(cat => {
+                        const songList = cat.songIds.map(id => {
+                          const s = songs.find(song => song.id === id);
+                          return s ? `${cat.category},${s.name},${s.artists.join(' & ')}` : '';
+                        }).filter(Boolean).join('\n');
+                        return songList;
+                      }).filter(Boolean).join('\n');
+                      downloadAsFile(`${playlistData?.name || 'export'}_all.csv`, `分类,歌曲名,歌手\n${allContent}`);
+                    }}
+                    className="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Download size={14} />
+                    下载全部 CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {categories.map((cat, idx) => (
               <motion.div 
@@ -879,13 +1041,41 @@ export default function App() {
                   )}
                 </div>
 
-                <button 
-                  onClick={() => exportCategory(cat)}
-                  className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 group/btn shadow-lg shadow-zinc-100"
-                >
-                  导出到网易云
-                  <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-                </button>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => exportCategory(cat)}
+                    className="flex-1 py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 group/btn shadow-lg shadow-zinc-100"
+                  >
+                    导出到网易云
+                    <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const text = cat.songIds.map(id => {
+                        const s = songs.find(song => song.id === id);
+                        return s ? `${s.name} - ${s.artists.join(', ')}` : '';
+                      }).filter(Boolean).join('\n');
+                      copyToClipboard(text, `已复制 ${cat.category} 的歌曲列表，可在网易云“文本导入”中使用`);
+                    }}
+                    title="复制文本列表 (支持网易云文本导入)"
+                    className="w-14 h-14 bg-zinc-50 text-zinc-400 rounded-2xl flex items-center justify-center hover:bg-zinc-100 hover:text-zinc-900 transition-all border border-zinc-100"
+                  >
+                    <Copy size={20} />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const content = cat.songIds.map(id => {
+                        const s = songs.find(song => song.id === id);
+                        return s ? `${s.name},${s.artists.join(' & ')}` : '';
+                      }).filter(Boolean).join('\n');
+                      downloadAsFile(`${cat.category}.csv`, `歌曲名,歌手\n${content}`);
+                    }}
+                    title="下载 CSV 文件"
+                    className="w-14 h-14 bg-zinc-50 text-zinc-400 rounded-2xl flex items-center justify-center hover:bg-zinc-100 hover:text-zinc-900 transition-all border border-zinc-100"
+                  >
+                    <Download size={20} />
+                  </button>
+                </div>
               </motion.div>
             ))}
 
