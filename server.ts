@@ -204,9 +204,8 @@ async function setupVite() {
     });
     app.use(vite.middlewares);
     console.log("Vite middleware initialized.");
-  } else {
-    app.use(express.static("dist"));
   }
+  // In Vercel, static files are handled by vercel.json routes, so we don't need app.use(express.static("dist")) here
 }
 
 // Only start the server if this file is run directly (not as a serverless function)
@@ -218,7 +217,7 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   });
 } else {
   // In Vercel, we just export the app
-  setupVite();
+  // No need to call setupVite() as it's only for dev middleware
 }
 
 export default app;
