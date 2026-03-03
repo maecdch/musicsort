@@ -11,6 +11,31 @@ export interface CategorizedSongs {
   description: string;
 }
 
+export interface PlaylistPersona {
+  title: string;
+  description: string;
+  tags: string[];
+}
+
+export async function generatePersona(songs: Song[]): Promise<PlaylistPersona> {
+  try {
+    const response = await fetch('/api/ai/persona', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ songs })
+    });
+
+    if (!response.ok) {
+      throw new Error('AI 人设生成失败');
+    }
+
+    return await response.json();
+  } catch (e: any) {
+    console.error("AI persona generation failed", e);
+    throw e;
+  }
+}
+
 export async function categorizeSongs(songs: Song[]): Promise<CategorizedSongs[]> {
   try {
     const response = await fetch('/api/ai/categorize', {

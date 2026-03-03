@@ -46,6 +46,7 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [manualCookie, setManualCookie] = useState('');
   const [showImportGuide, setShowImportGuide] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [playlistData, setPlaylistData] = useState<any>(null);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -368,10 +369,12 @@ export default function App() {
     }
   };
 
-  const copyToClipboard = (text: string, message: string) => {
+  const copyToClipboard = (text: string, message: string, id: string) => {
     navigator.clipboard.writeText(text).then(() => {
       showToast(message);
       setShowImportGuide(true); // Show guide after copying
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
     }).catch(() => {
       showToast('复制失败，请手动选择复制', 'error');
     });
@@ -920,7 +923,7 @@ export default function App() {
                         <h4 className="text-lg font-display font-bold text-emerald-900">如何使用“文本导入”？</h4>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                         {[
                           { step: '01', title: '点击复制', desc: '点击分类卡片右侧的复制图标，获取歌曲列表文本。' },
                           { step: '02', title: '打开网易云', desc: '打开电脑端或手机 App，进入“我的音乐”或任意歌单。' },
@@ -932,6 +935,13 @@ export default function App() {
                             <div className="text-xs text-emerald-600 leading-relaxed">{item.desc}</div>
                           </div>
                         ))}
+                      </div>
+                      
+                      <div className="pt-4 border-t border-emerald-200/50 flex items-start gap-2">
+                        <span className="text-emerald-500 mt-0.5">💡</span>
+                        <p className="text-xs text-emerald-700 leading-relaxed">
+                          <strong className="font-bold">进阶玩法：</strong> 复制的文本格式非常通用，您也可以将其粘贴到 <a href="https://www.tunemymusic.com/" target="_blank" rel="noreferrer" className="underline hover:text-emerald-900">TuneMyMusic</a> 等第三方工具中，将分类好的歌单无缝转移至 <strong>Spotify</strong> 或 <strong>Apple Music</strong>。
+                        </p>
                       </div>
                     </div>
                   </motion.div>
@@ -963,12 +973,17 @@ export default function App() {
                         }).filter(Boolean).join('\n');
                         return `### ${cat.category} ###\n${songList}`;
                       }).join('\n\n');
-                      copyToClipboard(allText, '已复制所有分类的歌曲列表');
+                      copyToClipboard(allText, '已复制所有分类的歌曲列表', 'all');
                     }}
-                    className="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all flex items-center gap-2 shadow-sm"
+                    className={cn(
+                      "px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm",
+                      copiedId === 'all' 
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-600" 
+                        : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                    )}
                   >
-                    <Copy size={14} />
-                    复制全部文本
+                    {copiedId === 'all' ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                    {copiedId === 'all' ? '已复制' : '复制全部文本'}
                   </button>
                   <button 
                     onClick={() => {
@@ -1055,12 +1070,17 @@ export default function App() {
                         const s = songs.find(song => song.id === id);
                         return s ? `${s.name} - ${s.artists.join(', ')}` : '';
                       }).filter(Boolean).join('\n');
-                      copyToClipboard(text, `已复制 ${cat.category} 的歌曲列表，可在网易云“文本导入”中使用`);
+                      copyToClipboard(text, `已复制 ${cat.category} 的歌曲列表，可在网易云“文本导入”中使用`, cat.category);
                     }}
                     title="复制文本列表 (支持网易云文本导入)"
-                    className="w-14 h-14 bg-zinc-50 text-zinc-400 rounded-2xl flex items-center justify-center hover:bg-zinc-100 hover:text-zinc-900 transition-all border border-zinc-100"
+                    className={cn(
+                      "w-14 h-14 rounded-2xl flex items-center justify-center transition-all border",
+                      copiedId === cat.category
+                        ? "bg-emerald-50 text-emerald-500 border-emerald-200"
+                        : "bg-zinc-50 text-zinc-400 border-zinc-100 hover:bg-zinc-100 hover:text-zinc-900"
+                    )}
                   >
-                    <Copy size={20} />
+                    {copiedId === cat.category ? <CheckCircle2 size={20} /> : <Copy size={20} />}
                   </button>
                   <button 
                     onClick={() => {

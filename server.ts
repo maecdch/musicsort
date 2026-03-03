@@ -202,6 +202,64 @@ app.post("/api/playlist/tracks", async (req, res) => {
 });
 
 // 8. AI Categorization (DeepSeek)
+app.post("/api/ai/persona", async (req, res) => {
+  try {
+    const { songs } = req.body;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(500).json({ error: "DEEPSEEK_API_KEY is not configured in environment variables." });
+    }
+
+    // Take a random sample of up to 50 songs to generate the persona
+    const sampleSize = Math.min(50, songs.length);
+    const shuffled = [...songs].sort(() => 0.5 - Math.random());
+    const sampleSongs = shuffled.slice(0, sampleSize);
+    const songListText = sampleSongs.map((s: any) => `${s.name} - ${s.artists.join(', ')}`).join('\n');
+
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: `你是一个世界顶级的音乐心理分析师。请根据用户提供的歌单样本，为这个歌单生成一个极具个性化的“音乐人设”（Musical Persona）。
+返回一个纯净的 JSON 对象，包含：
+- 'title' (人设标题，例如："赛博朋克漫游者"、"深夜emo收割机"、"日落大道驾驶员"，限10字以内)
+- 'description' (一段关于这个歌单整体氛围、听歌人性格或情绪状态的优美描述，50字左右，要像网易云年度报告一样走心)
+- 'tags' (3个描述该歌单核心情绪或风格的标签，例如：["迷幻", "失眠", "电子"])`
+          },
+          {
+            role: "user",
+            content: `歌单样本：\n${songListText}`
+          }
+        ],
+        response_format: {
+          type: "json_object"
+        },
+        max_tokens: 500
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || "DeepSeek API Error");
+
+    const content = data.choices[0].message.content;
+    const cleanedContent = content.replace(/```json\n?|```/g, '').trim();
+    const result = JSON.parse(cleanedContent);
+    res.json(result);
+  } catch (error: any) {
+    console.error(`AI Persona error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 9. AI Categorization (DeepSeek)
 app.post("/api/ai/categorize", async (req, res) => {
   try {
     const { songs } = req.body;
@@ -224,7 +282,20 @@ app.post("/api/ai/categorize", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "你是一个音乐专家。请分析用户提供的歌曲列表，并将它们严格分类到不同的音乐风格或情绪类别中。你必须确保列表中的每一首歌都被分配到至少一个类别中。返回一个纯净的 JSON 对象，包含一个名为 'categories' 的数组。数组中的每个对象必须包含：'category' (类别名称), 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始), 'description' (简短描述)。不要遗漏任何歌曲，不要包含任何额外的文字说明。"
+            content: `你是一个世界顶级的音乐策展人（Music Curator）和情感分析大师。
+请分析用户提供的歌曲列表，并将它们分类到极具画面感、情绪化或场景化的美学类别中（例如："凌晨三点的城市环线"、"赛博朋克漫游者"、"日落大道微醺"、"燃向踩点/肾上腺素"）。
+不要使用干瘪的流派名词（如"流行"、"摇滚"）。
+
+要求：
+1. 必须确保列表中的每一首歌都被分配到至少一个类别中。
+2. 每个类别的 'songIds' 数组中的歌曲，请按照**情绪递进**（例如从平静到高潮）的顺序进行排列。
+3. 返回一个纯净的 JSON 对象，包含一个名为 'categories' 的数组。
+4. 数组中的每个对象必须包含：
+   - 'category' (极具美感的类别名称，限15字以内)
+   - 'songIds' (属于该类别的歌曲在原始列表中的索引数组，从0开始，按情绪排序)
+   - 'description' (一段关于该分类场景或情绪的优美描述，30字左右)
+
+不要遗漏任何歌曲，不要包含任何额外的文字说明。`
           },
           {
             role: "user",
