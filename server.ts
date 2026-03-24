@@ -3,6 +3,12 @@ import { createRequire } from "module";
 
 import NeteaseApi from "NeteaseCloudMusicApi";
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json());
 const PORT = 3000;
@@ -359,9 +365,9 @@ app.post("/api/ai/categorize", async (req, res) => {
   }
 });
 
-// Vite middleware for development (only if not in production/Vercel)
+// Vite middleware for development (only if not in production)
 async function setupVite() {
-  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  if (process.env.NODE_ENV !== "production") {
     console.log("Initializing Vite middleware...");
     try {
       const { createServer: createViteServer } = await import("vite");
@@ -374,20 +380,23 @@ async function setupVite() {
     } catch (e) {
       console.error("Failed to initialize Vite middleware:", e);
     }
+  } else {
+    // Serve static files in production
+    const distPath = path.join(__dirname, "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+    console.log("Serving static files from dist/");
   }
 }
 
-// Only start the server if this file is run directly (not as a serverless function)
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  setupVite().then(() => {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server successfully started on http://0.0.0.0:${PORT}`);
-    });
+// Start the server
+setupVite().then(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server successfully started on http://0.0.0.0:${PORT}`);
   });
-} else {
-  // In Vercel, we just export the app
-  // No need to call setupVite() as it's only for dev middleware
-}
+});
 
 export default app;
 
