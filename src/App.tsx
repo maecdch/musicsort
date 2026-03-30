@@ -24,7 +24,9 @@ import {
   HelpCircle,
   X,
   Copy,
-  Download
+  Download,
+  Sparkles,
+  PlayCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -484,7 +486,16 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen pb-20 relative">
+    <div className="min-h-screen bg-surface text-on-surface font-body selection:bg-primary/30 selection:text-primary relative pb-20 overflow-x-hidden">
+      {/* 音乐宇宙 (Music Universe) Background Elements */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-tertiary/20 rounded-full blur-[150px] mix-blend-screen animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-[30%] left-[40%] w-[40%] h-[40%] bg-secondary-fixed/10 rounded-full blur-[100px] mix-blend-screen animate-pulse-slow" style={{ animationDelay: '4s' }}></div>
+        {/* Grid Pattern for Tech Feel */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50"></div>
+      </div>
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -493,117 +504,119 @@ export default function App() {
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 20, x: '-50%' }}
             className={cn(
-              "fixed bottom-10 left-1/2 z-[200] px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-md",
-              toast.type === 'success' ? "bg-emerald-500/90 border-emerald-400 text-white" : "bg-red-500/90 border-red-400 text-white"
+              "fixed bottom-10 left-1/2 z-[200] px-6 py-3 rounded-full shadow-xl flex items-center gap-3 border glass-panel",
+              toast.type === 'success' ? "border-secondary-fixed/30 text-secondary-fixed" : "border-error/30 text-error"
             )}
           >
-            {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-            <span className="text-sm font-bold">{toast.message}</span>
+            {toast.type === 'success' ? <span className="material-symbols-outlined text-secondary-fixed">check_circle</span> : <span className="material-symbols-outlined text-error">error</span>}
+            <span className="text-sm font-medium">{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Decorative Background */}
-      <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-red-50/50 to-transparent pointer-events-none" />
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] hero-gradient blur-[120px] rounded-full opacity-50" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-secondary-fixed/10 blur-[120px] rounded-full opacity-30" />
+      </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-card border-b border-zinc-200/50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center text-white shadow-xl shadow-zinc-200">
-              <Filter size={20} />
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold tracking-tight">MusicSorter</h1>
-              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.2em]">AI Intelligence</p>
-            </div>
+      <header className="fixed top-0 left-0 right-0 h-20 glass-panel border-b border-outline-variant/30 z-40 flex items-center justify-between px-6 md:px-12">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sonic-gradient-primary rounded-xl flex items-center justify-center sonic-pulse">
+            <span className="material-symbols-outlined text-on-primary">graphic_eq</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            {user ? (
-              <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm pl-1 pr-3 py-1 rounded-full border border-zinc-200/50 shadow-sm">
-                <img src={user.avatarUrl} alt={user.nickname} className="w-8 h-8 rounded-full border border-white" />
-                <span className="text-sm font-medium text-zinc-700">{user.nickname}</span>
-                <button onClick={handleLogout} className="p-1 text-zinc-400 hover:text-red-500 transition-colors">
-                  <LogOut size={14} />
-                </button>
+          <h1 className="text-xl font-headline font-bold tracking-tight text-on-surface">
+            音流脉冲 <span className="text-primary font-light">Sonic Flux</span>
+          </h1>
+        </div>
+        <div>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 px-4 py-2 bg-surface-container rounded-full border border-outline-variant/30">
+                <img src={user.avatarUrl} alt="avatar" className="w-8 h-8 rounded-full shadow-sm" />
+                <span className="text-sm font-medium text-on-surface hidden md:block">{user.nickname}</span>
               </div>
-            ) : (
               <button 
-                onClick={() => setShowLoginModal(true)}
-                disabled={loginLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 text-white rounded-full text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-zinc-200"
+                onClick={handleLogout}
+                className="p-2 text-outline hover:text-error hover:bg-error/10 rounded-full transition-colors"
+                title="退出登录"
               >
-                {loginLoading ? <Loader2 className="animate-spin" size={16} /> : <LogOut size={16} className="rotate-180" />}
-                登录网易云
+                <span className="material-symbols-outlined">logout</span>
               </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowLoginModal(true)}
+              disabled={loginLoading}
+              className="px-6 py-2.5 bg-primary text-on-primary text-sm font-bold rounded-full hover:bg-primary-fixed transition-all shadow-md hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 flex items-center gap-2"
+            >
+              {loginLoading ? <Loader2 className="animate-spin" size={16} /> : <span className="material-symbols-outlined text-[18px]">login</span>}
+              登录网易云
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 mt-20 relative z-10">
-        {/* Hero Section */}
-        <section className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-block px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6 border border-red-100"
-          >
-            Smart Playlist Organizer
-          </motion.div>
-          <motion.h2 
+      <main className="relative z-10 pt-40 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
+        {/* Input Section */}
+        {!playlistData && !loading && (
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-display font-bold text-zinc-900 mb-6 tracking-tight"
+            className="max-w-3xl mx-auto mt-8 md:mt-16 text-center"
           >
-            整理你的 <span className="text-red-500">音乐</span> 世界
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-zinc-500 text-base md:text-xl max-w-2xl mx-auto leading-relaxed"
-          >
-            粘贴网易云歌单链接，让 DeepSeek AI 为你自动分类歌曲风格，并一键导出。
-          </motion.p>
-        </section>
-
-        {/* Search Input */}
-        <div className="flex flex-col md:relative group mb-12 gap-3 md:gap-0">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-red-500 transition-colors">
-              <Search size={20} />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 border border-primary/20">
+              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              <span>AI 驱动的歌单整理助手</span>
             </div>
-            <input 
-              type="text" 
-              placeholder="粘贴网易云歌单链接..."
-              className="w-full pl-14 pr-6 md:pr-32 py-4 md:py-5 bg-white border-2 border-zinc-100 rounded-2xl shadow-sm focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-base md:text-lg"
-              value={playlistUrl}
-              onChange={(e) => setPlaylistUrl(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchPlaylist()}
-            />
-          </div>
-          <button 
-            onClick={fetchPlaylist}
-            disabled={loading || !playlistUrl}
-            className="md:absolute md:right-3 md:top-3 md:bottom-3 px-6 py-4 md:py-0 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 disabled:bg-zinc-200 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : '开始分析'}
-          </button>
-        </div>
+            <h2 className="text-5xl md:text-7xl font-headline font-bold tracking-tight mb-6 leading-[1.1]">
+              重塑你的<br />
+              <span className="text-transparent bg-clip-text sonic-gradient-primary">
+                音乐宇宙
+              </span>
+            </h2>
+            <p className="text-lg text-on-surface-variant mb-12 max-w-xl mx-auto leading-relaxed">
+              输入网易云歌单链接，AI 将根据情绪、场景和曲风，为你生成多维度的智能分类。
+            </p>
+
+            <div className="relative group max-w-2xl mx-auto">
+              <div className="absolute -inset-1 sonic-gradient-primary rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+              <div className="relative glass-card p-2 rounded-[2rem] flex items-center">
+                <div className="pl-6 pr-4 text-outline">
+                  <span className="material-symbols-outlined">search</span>
+                </div>
+                <input
+                  type="text"
+                  value={playlistUrl}
+                  onChange={(e) => setPlaylistUrl(e.target.value)}
+                  placeholder="在此粘贴网易云歌单链接..."
+                  className="flex-1 bg-transparent border-none outline-none text-lg text-on-surface placeholder:text-outline py-4"
+                  onKeyDown={(e) => e.key === 'Enter' && fetchPlaylist()}
+                />
+                <button
+                  onClick={fetchPlaylist}
+                  disabled={!playlistUrl.trim() || loading}
+                  className="px-8 py-4 bg-primary text-on-primary rounded-[1.5rem] font-bold hover:bg-primary-fixed transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md"
+                >
+                  开始分析
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {error && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600"
+            className="mb-8 p-4 bg-error-container/20 border border-error/30 rounded-xl flex items-center gap-3 text-error"
           >
-            <AlertCircle size={20} className="shrink-0" />
+            <span className="material-symbols-outlined shrink-0">error</span>
             <p className="text-sm font-medium flex-1">{error}</p>
-            <button onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded-lg transition-colors">
-              <X size={16} />
+            <button onClick={() => setError(null)} className="p-1 hover:bg-error/20 rounded-lg transition-colors">
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </motion.div>
         )}
@@ -615,32 +628,32 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md p-6"
             >
               <motion.div 
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border border-zinc-100 relative overflow-hidden"
+                className="glass-card rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden sonic-glow"
               >
                 <button 
                   onClick={() => setShowLoginModal(false)}
-                  className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+                  className="absolute top-6 right-6 p-2 text-outline hover:text-on-surface transition-colors"
                 >
-                  <X size={20} />
+                  <span className="material-symbols-outlined">close</span>
                 </button>
 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-display font-bold text-zinc-900 mb-2">登录网易云</h3>
-                  <p className="text-zinc-500 text-sm">选择最适合您的登录方式</p>
+                  <h3 className="text-2xl font-headline font-bold text-on-surface mb-2">连接网易云</h3>
+                  <p className="text-on-surface-variant text-sm">选择最适合您的登录方式</p>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex p-1 bg-zinc-100 rounded-2xl mb-8">
+                <div className="flex p-1 bg-surface-container-high rounded-xl mb-8">
                   <button 
                     onClick={() => setLoginMethod('qr')}
                     className={cn(
-                      "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all",
-                      loginMethod === 'qr' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                      "flex-1 py-2.5 text-sm font-medium rounded-lg transition-all",
+                      loginMethod === 'qr' ? "bg-surface-container-highest text-on-surface shadow-sm" : "text-outline hover:text-on-surface-variant"
                     )}
                   >
                     扫码登录
@@ -648,8 +661,8 @@ export default function App() {
                   <button 
                     onClick={() => setLoginMethod('phone')}
                     className={cn(
-                      "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all",
-                      loginMethod === 'phone' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                      "flex-1 py-2.5 text-sm font-medium rounded-lg transition-all",
+                      loginMethod === 'phone' ? "bg-surface-container-highest text-on-surface shadow-sm" : "text-outline hover:text-on-surface-variant"
                     )}
                   >
                     手机登录
@@ -657,11 +670,11 @@ export default function App() {
                   <button 
                     onClick={() => setLoginMethod('cookie')}
                     className={cn(
-                      "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all",
-                      loginMethod === 'cookie' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                      "flex-1 py-2.5 text-sm font-medium rounded-lg transition-all",
+                      loginMethod === 'cookie' ? "bg-surface-container-highest text-on-surface shadow-sm" : "text-outline hover:text-on-surface-variant"
                     )}
                   >
-                    Cookie 登录
+                    Cookie
                   </button>
                 </div>
 
@@ -670,51 +683,51 @@ export default function App() {
                   {loginMethod === 'qr' && (
                     <div className="text-center w-full">
                       {qrUrl ? (
-                        <div className="relative inline-block p-4 bg-zinc-50 rounded-3xl border border-zinc-100 mb-6 group">
+                        <div className="relative inline-block p-4 bg-white rounded-2xl mb-6 group">
                           <QRCodeSVG value={qrUrl} size={180} />
                           
                           {qrStatus === 800 && (
-                            <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-3xl">
-                              <p className="text-sm font-bold text-red-500 mb-3">二维码已过期</p>
+                            <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-2xl">
+                              <p className="text-sm font-bold text-error mb-3">二维码已过期</p>
                               <button 
                                 onClick={startQrLogin} 
-                                className="px-4 py-2 bg-zinc-900 text-white rounded-full text-xs font-bold hover:bg-zinc-800 transition-all"
+                                className="px-4 py-2 bg-primary text-on-primary rounded-full text-xs font-bold hover:bg-primary-fixed transition-all"
                               >
                                 点击刷新
                               </button>
                             </div>
                           )}
                           {qrStatus === 802 && (
-                            <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-3xl">
-                              <CheckCircle2 className="text-green-500 mb-2" size={32} />
-                              <p className="text-sm font-bold text-zinc-900">扫描成功</p>
-                              <p className="text-xs text-zinc-500 mt-1">请在手机上确认登录</p>
+                            <div className="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center rounded-2xl">
+                              <span className="material-symbols-outlined text-secondary-fixed mb-2 text-4xl">check_circle</span>
+                              <p className="text-sm font-bold text-surface">扫描成功</p>
+                              <p className="text-xs text-surface-variant mt-1">请在手机上确认登录</p>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="w-[212px] h-[212px] bg-zinc-50 rounded-3xl flex items-center justify-center mb-6 border border-zinc-100">
-                          <Loader2 className="animate-spin text-zinc-300" size={32} />
+                        <div className="w-[212px] h-[212px] bg-surface-container-high rounded-2xl flex items-center justify-center mb-6 border border-outline-variant/30">
+                          <Loader2 className="animate-spin text-primary" size={32} />
                         </div>
                       )}
 
                       <div className="space-y-4">
                         <div className="h-6 flex items-center justify-center">
-                          {qrStatus === 801 && <p className="text-xs text-zinc-400 italic">等待扫码...</p>}
-                          {qrStatus === 802 && <p className="text-xs text-blue-500 font-bold">已扫码，请确认</p>}
-                          {qrStatus === 803 && <p className="text-xs text-green-500 font-bold">登录成功</p>}
+                          {qrStatus === 801 && <p className="text-sm text-outline">等待扫码...</p>}
+                          {qrStatus === 802 && <p className="text-sm text-secondary-fixed font-medium">已扫码，请确认</p>}
+                          {qrStatus === 803 && <p className="text-sm text-secondary-fixed font-medium">登录成功</p>}
                         </div>
 
                         <div className="flex flex-col gap-3">
                           <a 
                             href={`orpheus://openurl?url=${encodeURIComponent(qrUrl || '')}`}
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-500 text-white rounded-2xl text-xs font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary-fixed transition-all shadow-md"
                           >
-                            <ExternalLink size={14} />
+                            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
                             在网易云 App 中打开
                           </a>
-                          <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                            <p className="text-[10px] text-blue-700 leading-relaxed">
+                          <div className="p-3 bg-surface-container-high rounded-xl border border-outline-variant/30">
+                            <p className="text-xs text-on-surface-variant leading-relaxed">
                               <strong>QQ 登录提示：</strong> 请在网易云 App 中先绑定 QQ，然后使用 App 扫码即可同步登录。
                             </p>
                           </div>
@@ -726,26 +739,26 @@ export default function App() {
                   {loginMethod === 'phone' && (
                     <form onSubmit={handlePhoneLogin} className="w-full space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">手机号码</label>
+                        <label className="text-xs font-medium text-outline ml-1">手机号码</label>
                         <div className="relative">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[18px]">phone_iphone</span>
                           <input 
                             type="text" 
                             placeholder="请输入手机号"
-                            className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm"
+                            className="w-full pl-12 pr-4 py-3.5 bg-surface-container-high border border-outline-variant/30 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm text-on-surface placeholder:text-outline"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">登录密码</label>
+                        <label className="text-xs font-medium text-outline ml-1">登录密码</label>
                         <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[18px]">lock</span>
                           <input 
                             type="password" 
                             placeholder="请输入密码"
-                            className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm"
+                            className="w-full pl-12 pr-4 py-3.5 bg-surface-container-high border border-outline-variant/30 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm text-on-surface placeholder:text-outline"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                           />
@@ -754,11 +767,11 @@ export default function App() {
                       <button 
                         type="submit"
                         disabled={loginLoading || !phone || !password}
-                        className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-xl shadow-zinc-100 flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary-fixed transition-all disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
                       >
                         {loginLoading ? <Loader2 className="animate-spin" size={18} /> : '立即登录'}
                       </button>
-                      <p className="text-[10px] text-zinc-400 text-center">我们不会存储您的密码，仅用于获取登录凭证</p>
+                      <p className="text-xs text-outline text-center">我们不会存储您的密码，仅用于获取登录凭证</p>
                     </form>
                   )}
 
@@ -766,22 +779,22 @@ export default function App() {
                     <form onSubmit={handleCookieLogin} className="w-full space-y-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between ml-1">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">MUSIC_U Cookie</label>
+                          <label className="text-xs font-medium text-outline">MUSIC_U Cookie</label>
                           <a 
                             href="https://github.com/Binaryify/NeteaseCloudMusicApi/issues/1118#issuecomment-853144882" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-[10px] text-red-500 font-bold hover:underline flex items-center gap-1"
+                            className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
                           >
-                            <HelpCircle size={10} />
+                            <span className="material-symbols-outlined text-[14px]">help</span>
                             如何获取？
                           </a>
                         </div>
                         <div className="relative">
-                          <Key className="absolute left-4 top-4 text-zinc-400" size={18} />
+                          <span className="material-symbols-outlined absolute left-4 top-4 text-outline text-[18px]">key</span>
                           <textarea 
                             placeholder="粘贴您的网易云 Cookie (MUSIC_U=...)"
-                            className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all text-sm min-h-[120px] resize-none"
+                            className="w-full pl-12 pr-4 py-4 bg-surface-container-high border border-outline-variant/30 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm text-on-surface placeholder:text-outline min-h-[120px] resize-none"
                             value={manualCookie}
                             onChange={(e) => setManualCookie(e.target.value)}
                           />
@@ -790,12 +803,12 @@ export default function App() {
                       <button 
                         type="submit"
                         disabled={!manualCookie}
-                        className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-xl shadow-zinc-100"
+                        className="w-full py-4 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary-fixed transition-all disabled:opacity-50 shadow-md"
                       >
                         导入凭证
                       </button>
-                      <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                        <p className="text-[10px] text-emerald-700 leading-relaxed">
+                      <div className="p-4 bg-secondary-fixed/10 rounded-2xl border border-secondary-fixed/20">
+                        <p className="text-[10px] text-secondary-fixed leading-relaxed">
                           <strong>最稳方案：</strong> 浏览器登录网易云后，在 F12 控制台输入 <code>document.cookie</code>，复制 <code>MUSIC_U</code> 这一段即可。这不经过登录握手，直接生效。
                         </p>
                       </div>
@@ -804,17 +817,17 @@ export default function App() {
                 </div>
 
                 {/* Stability Note & Diagnosis */}
-                <div className="mt-8 pt-6 border-t border-zinc-50 space-y-4">
+                <div className="mt-8 pt-6 border-t border-outline-variant/30 space-y-4">
                   <div className="flex items-start gap-3">
-                    <HelpCircle className="text-zinc-300 shrink-0" size={16} />
+                    <span className="material-symbols-outlined text-outline shrink-0 text-[16px]">info</span>
                     <div className="space-y-1">
-                      <p className="text-[10px] text-zinc-400 leading-relaxed">
+                      <p className="text-[10px] text-outline leading-relaxed">
                         由于服务器部署在海外，登录请求可能会受到网络波动影响。
                       </p>
-                      <p className="text-[10px] text-emerald-600 font-bold leading-relaxed">
+                      <p className="text-[10px] text-secondary-fixed font-medium leading-relaxed">
                         已开启 Real-IP 模拟优化，尝试绕过地域限制。
                       </p>
-                      <p className="text-[10px] text-zinc-400 leading-relaxed">
+                      <p className="text-[10px] text-outline leading-relaxed">
                         如果多次尝试失败，强烈建议使用 <strong>Cookie 导入</strong>。
                       </p>
                     </div>
@@ -834,7 +847,7 @@ export default function App() {
                         setToast({ message: '无法连接到服务器', type: 'error' });
                       }
                     }}
-                    className="w-full py-2 border border-zinc-100 rounded-xl text-[10px] font-bold text-zinc-400 hover:bg-zinc-50 transition-all"
+                    className="w-full py-2 border border-outline-variant/30 rounded-xl text-[10px] font-medium text-outline hover:bg-surface-container-high transition-all"
                   >
                     测试服务器连接
                   </button>
@@ -852,11 +865,11 @@ export default function App() {
               animate={{ opacity: 1 }}
               className="py-20 flex flex-col items-center justify-center text-center"
             >
-              <div className="w-20 h-20 bg-zinc-100 rounded-[2rem] flex items-center justify-center text-zinc-300 mb-6">
-                <ListMusic size={40} />
+              <div className="w-20 h-20 bg-surface-container-high rounded-[2rem] flex items-center justify-center text-outline mb-6 sonic-glow">
+                <span className="material-symbols-outlined text-[40px]">queue_music</span>
               </div>
-              <h3 className="text-xl font-display font-bold text-zinc-900 mb-2">准备好整理了吗？</h3>
-              <p className="text-zinc-400 text-sm max-w-xs mx-auto">粘贴歌单链接并点击“开始分析”，DeepSeek AI 将为您智能分类。</p>
+              <h3 className="text-xl font-display font-bold text-on-surface mb-2">准备好整理了吗？</h3>
+              <p className="text-outline text-sm max-w-xs mx-auto">粘贴歌单链接并点击“开始分析”，DeepSeek AI 将为您智能分类。</p>
             </motion.div>
           )}
 
@@ -864,32 +877,40 @@ export default function App() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-zinc-100 shadow-xl flex flex-col md:flex-row gap-8 items-center md:items-start"
+              className="glass-card rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-outline-variant/30 flex flex-col md:flex-row items-center gap-10"
             >
               <div className="relative group">
                 <img 
                   src={playlistData.coverImgUrl} 
                   alt={playlistData.name} 
-                  className="w-48 h-48 rounded-3xl shadow-xl object-cover flex-shrink-0 relative z-10 transition-transform duration-500 group-hover:scale-105"
+                  className="w-48 h-48 md:w-56 md:h-56 rounded-[2rem] shadow-2xl object-cover flex-shrink-0 relative z-10 transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute -inset-4 bg-red-500/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-secondary-fixed/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                   <div className="w-16 h-16 bg-surface-container/50 backdrop-blur-md rounded-full flex items-center justify-center text-on-surface shadow-lg">
+                     <span className="material-symbols-outlined text-[32px] ml-1">play_circle</span>
+                   </div>
+                </div>
               </div>
               <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-                  <span className="px-3 py-1 bg-zinc-900 text-white text-[10px] font-bold rounded-full uppercase tracking-widest">Original Playlist</span>
-                  <span className="text-zinc-300">•</span>
-                  <span className="text-zinc-500 text-sm font-medium">{playlistData.trackCount} 首歌</span>
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                  <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-black rounded-full uppercase tracking-widest border border-primary/20">Original Playlist</span>
+                  <span className="text-outline-variant">•</span>
+                  <span className="text-outline text-sm font-bold flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">queue_music</span>
+                    {playlistData.trackCount} 首歌
+                  </span>
                 </div>
-                <h3 className="text-3xl font-display font-bold mb-4 tracking-tight">{playlistData.name}</h3>
-                <p className="text-zinc-500 text-sm md:text-base line-clamp-2 mb-8 max-w-xl">{playlistData.description}</p>
+                <h3 className="text-3xl md:text-4xl font-display font-black mb-4 tracking-tight text-on-surface">{playlistData.name}</h3>
+                <p className="text-outline text-sm md:text-base line-clamp-2 mb-8 max-w-2xl leading-relaxed">{playlistData.description}</p>
                 
                 <div className="flex items-center justify-center md:justify-start gap-4">
                   <div className="flex -space-x-3">
                     {playlistData.subscribers.slice(0, 5).map((sub: any) => (
-                      <img key={sub.userId} src={sub.avatarUrl} className="w-10 h-10 rounded-full border-4 border-white shadow-sm" />
+                      <img key={sub.userId} src={sub.avatarUrl} className="w-10 h-10 rounded-full border-2 border-surface shadow-sm" />
                     ))}
                   </div>
-                  <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider">
+                  <span className="text-xs text-outline font-bold uppercase tracking-wider">
                     {playlistData.subscribedCount.toLocaleString()} 位收藏者
                   </span>
                 </div>
@@ -909,18 +930,18 @@ export default function App() {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-[2rem] p-8 relative">
+                    <div className="bg-secondary-fixed/10 border border-secondary-fixed/20 rounded-[2rem] p-8 relative">
                       <button 
                         onClick={() => setShowImportGuide(false)}
-                        className="absolute top-6 right-6 text-emerald-400 hover:text-emerald-600 transition-colors"
+                        className="absolute top-6 right-6 text-outline hover:text-on-surface transition-colors"
                       >
-                        <X size={20} />
+                        <span className="material-symbols-outlined text-[20px]">close</span>
                       </button>
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
-                          <HelpCircle size={20} />
+                        <div className="w-10 h-10 bg-secondary-fixed text-on-secondary-fixed rounded-2xl flex items-center justify-center shadow-lg shadow-secondary-fixed/20">
+                          <span className="material-symbols-outlined text-[20px]">help</span>
                         </div>
-                        <h4 className="text-lg font-display font-bold text-emerald-900">如何使用“文本导入”？</h4>
+                        <h4 className="text-lg font-display font-bold text-on-surface">如何使用“文本导入”？</h4>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -930,17 +951,17 @@ export default function App() {
                           { step: '03', title: '文本导入', desc: '点击“导入外部歌单” -> “文本导入”，粘贴并确认即可。' }
                         ].map((item, i) => (
                           <div key={i} className="space-y-2">
-                            <div className="text-[10px] font-black text-emerald-300 tracking-widest">{item.step}</div>
-                            <div className="text-sm font-bold text-emerald-800">{item.title}</div>
-                            <div className="text-xs text-emerald-600 leading-relaxed">{item.desc}</div>
+                            <div className="text-[10px] font-black text-secondary-fixed/70 tracking-widest">{item.step}</div>
+                            <div className="text-sm font-bold text-on-surface">{item.title}</div>
+                            <div className="text-xs text-outline leading-relaxed">{item.desc}</div>
                           </div>
                         ))}
                       </div>
                       
-                      <div className="pt-4 border-t border-emerald-200/50 flex items-start gap-2">
-                        <span className="text-emerald-500 mt-0.5">💡</span>
-                        <p className="text-xs text-emerald-700 leading-relaxed">
-                          <strong className="font-bold">进阶玩法：</strong> 复制的文本格式非常通用，您也可以将其粘贴到 <a href="https://www.tunemymusic.com/" target="_blank" rel="noreferrer" className="underline hover:text-emerald-900">TuneMyMusic</a> 等第三方工具中，将分类好的歌单无缝转移至 <strong>Spotify</strong> 或 <strong>Apple Music</strong>。
+                      <div className="pt-4 border-t border-secondary-fixed/20 flex items-start gap-2">
+                        <span className="text-secondary-fixed mt-0.5">💡</span>
+                        <p className="text-xs text-outline leading-relaxed">
+                          <strong className="font-bold text-on-surface">进阶玩法：</strong> 复制的文本格式非常通用，您也可以将其粘贴到 <a href="https://www.tunemymusic.com/" target="_blank" rel="noreferrer" className="underline hover:text-secondary-fixed">TuneMyMusic</a> 等第三方工具中，将分类好的歌单无缝转移至 <strong>Spotify</strong> 或 <strong>Apple Music</strong>。
                         </p>
                       </div>
                     </div>
@@ -950,15 +971,15 @@ export default function App() {
 
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <h3 className="text-2xl font-display font-bold text-zinc-900 mb-2">分类结果</h3>
+                  <h3 className="text-2xl font-display font-black text-on-surface mb-2">分类结果</h3>
                   <div className="flex items-center gap-2">
-                    <p className="text-zinc-400 text-sm">AI 已将歌曲划分为 {categories.length} 个维度</p>
-                    <span className="text-zinc-200">|</span>
+                    <p className="text-outline text-sm">AI 已将歌曲划分为 {categories.length} 个维度</p>
+                    <span className="text-outline-variant">|</span>
                     <button 
                       onClick={() => setShowImportGuide(!showImportGuide)}
-                      className="text-[10px] text-red-500 font-bold hover:underline flex items-center gap-1"
+                      className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
                     >
-                      <HelpCircle size={10} />
+                      <span className="material-symbols-outlined text-[14px]">help</span>
                       {showImportGuide ? '隐藏教程' : '查看文本导入教程'}
                     </button>
                   </div>
@@ -976,13 +997,13 @@ export default function App() {
                       copyToClipboard(allText, '已复制所有分类的歌曲列表', 'all');
                     }}
                     className={cn(
-                      "px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm",
+                      "px-5 py-2.5 border rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm",
                       copiedId === 'all' 
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-600" 
-                        : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                        ? "bg-secondary-fixed/10 border-secondary-fixed/30 text-secondary-fixed" 
+                        : "bg-surface-container border-outline-variant/30 text-on-surface hover:bg-surface-container-high"
                     )}
                   >
-                    {copiedId === 'all' ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                    {copiedId === 'all' ? <span className="material-symbols-outlined text-[16px]">check_circle</span> : <span className="material-symbols-outlined text-[16px]">content_copy</span>}
                     {copiedId === 'all' ? '已复制' : '复制全部文本'}
                   </button>
                   <button 
@@ -996,9 +1017,9 @@ export default function App() {
                       }).filter(Boolean).join('\n');
                       downloadAsFile(`${playlistData?.name || 'export'}_all.csv`, `分类,歌曲名,歌手\n${allContent}`);
                     }}
-                    className="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all flex items-center gap-2 shadow-sm"
+                    className="px-5 py-2.5 bg-surface-container border border-outline-variant/30 text-on-surface rounded-xl text-sm font-bold hover:bg-surface-container-high transition-all flex items-center gap-2 shadow-sm"
                   >
-                    <Download size={14} />
+                    <span className="material-symbols-outlined text-[16px]">download</span>
                     下载全部 CSV
                   </button>
                 </div>
@@ -1006,7 +1027,7 @@ export default function App() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {categories.map((cat, idx) => (
               <motion.div 
                 key={cat.category}
@@ -1014,55 +1035,50 @@ export default function App() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.05 }}
-                className="bg-white rounded-[2rem] p-8 flex flex-col h-full border border-zinc-100 hover:border-zinc-300 transition-all duration-300 group hover:shadow-2xl hover:-translate-y-1"
+                className="glass-card rounded-[2rem] p-8 flex flex-col h-full border border-outline-variant/30 hover:border-primary/50 transition-all duration-300 group hover:shadow-xl hover:shadow-primary/5"
               >
                 <div className="flex items-start justify-between mb-8">
-                  <div className="max-w-[70%]">
-                    <h4 className="text-2xl font-display font-bold text-zinc-900 mb-2 group-hover:text-red-500 transition-colors">{cat.category}</h4>
-                    <p className="text-sm text-zinc-500 leading-relaxed">{cat.description}</p>
+                  <div className="max-w-[75%]">
+                    <h4 className="text-2xl font-display font-black text-on-surface mb-2 group-hover:text-primary transition-colors">{cat.category}</h4>
+                    <p className="text-sm text-outline leading-relaxed">{cat.description}</p>
                   </div>
-                  <div className="px-4 py-2 bg-zinc-50 text-zinc-900 rounded-2xl text-xs font-black border border-zinc-100">
+                  <div className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-black border border-primary/20">
                     {cat.songIds.length}
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-4 mb-10">
+                <div className="flex-1 space-y-3 mb-8">
                   {cat.songIds.slice(0, 3).map(songId => {
                     const song = songs.find(s => s.id === songId);
                     return song ? (
-                      <div key={song.id} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-zinc-50 transition-all duration-300 group/song">
-                        <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 group-hover/song:bg-white group-hover/song:shadow-md group-hover/song:text-red-500 transition-all">
-                          <Music size={16} className="group-hover/song:scale-110 transition-transform" />
+                      <div key={song.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-container-high transition-all duration-300 group/song border border-transparent hover:border-outline-variant/30">
+                        <div className="w-10 h-10 bg-surface-container-high rounded-lg flex items-center justify-center text-outline group-hover/song:bg-primary/10 group-hover/song:shadow-sm group-hover/song:text-primary transition-all">
+                          <span className="material-symbols-outlined text-[16px] group-hover/song:scale-110 transition-transform">music_note</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold truncate text-zinc-800 group-hover/song:text-zinc-900 transition-colors">{song.name}</p>
-                          <p className="text-[10px] text-zinc-400 font-medium truncate uppercase tracking-wider">{song.artists.join(', ')}</p>
-                        </div>
-                        <div className="opacity-0 group-hover/song:opacity-100 transition-opacity">
-                          <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center text-white">
-                            <Plus size={12} />
-                          </div>
+                          <p className="text-sm font-bold truncate text-on-surface transition-colors">{song.name}</p>
+                          <p className="text-xs text-outline font-medium truncate mt-0.5">{song.artists.join(', ')}</p>
                         </div>
                       </div>
                     ) : null;
                   })}
                   {cat.songIds.length > 3 && (
-                    <div className="flex items-center gap-2 pl-4">
-                      <div className="w-1 h-1 bg-zinc-200 rounded-full" />
-                      <p className="text-[10px] text-zinc-300 font-bold uppercase tracking-[0.2em]">
-                        + {cat.songIds.length - 3} More Tracks
+                    <div className="flex items-center gap-2 pl-4 pt-2">
+                      <div className="w-1 h-1 bg-outline-variant rounded-full" />
+                      <p className="text-xs text-outline font-bold">
+                        + {cat.songIds.length - 3} 首歌曲
                       </p>
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-auto">
                   <button 
                     onClick={() => exportCategory(cat)}
-                    className="flex-1 py-4 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 group/btn shadow-lg shadow-zinc-100"
+                    className="flex-1 py-3.5 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary-fixed transition-all flex items-center justify-center gap-2 group/btn shadow-md"
                   >
                     导出到网易云
-                    <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                    <span className="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
                   </button>
                   <button 
                     onClick={() => {
@@ -1074,13 +1090,13 @@ export default function App() {
                     }}
                     title="复制文本列表 (支持网易云文本导入)"
                     className={cn(
-                      "w-14 h-14 rounded-2xl flex items-center justify-center transition-all border",
+                      "w-12 h-12 rounded-xl flex items-center justify-center transition-all border",
                       copiedId === cat.category
-                        ? "bg-emerald-50 text-emerald-500 border-emerald-200"
-                        : "bg-zinc-50 text-zinc-400 border-zinc-100 hover:bg-zinc-100 hover:text-zinc-900"
+                        ? "bg-secondary-fixed/10 text-secondary-fixed border-secondary-fixed/30"
+                        : "bg-surface-container text-outline border-outline-variant/30 hover:bg-surface-container-high hover:text-on-surface"
                     )}
                   >
-                    {copiedId === cat.category ? <CheckCircle2 size={20} /> : <Copy size={20} />}
+                    {copiedId === cat.category ? <span className="material-symbols-outlined text-[18px]">check_circle</span> : <span className="material-symbols-outlined text-[18px]">content_copy</span>}
                   </button>
                   <button 
                     onClick={() => {
@@ -1091,9 +1107,9 @@ export default function App() {
                       downloadAsFile(`${cat.category}.csv`, `歌曲名,歌手\n${content}`);
                     }}
                     title="下载 CSV 文件"
-                    className="w-14 h-14 bg-zinc-50 text-zinc-400 rounded-2xl flex items-center justify-center hover:bg-zinc-100 hover:text-zinc-900 transition-all border border-zinc-100"
+                    className="w-12 h-12 bg-surface-container text-outline rounded-xl flex items-center justify-center hover:bg-surface-container-high hover:text-on-surface transition-all border border-outline-variant/30"
                   >
-                    <Download size={20} />
+                    <span className="material-symbols-outlined text-[18px]">download</span>
                   </button>
                 </div>
               </motion.div>
@@ -1102,22 +1118,22 @@ export default function App() {
             {loading && categories.length === 0 && songs.length > 0 && (
               <div className="col-span-full py-20 flex flex-col items-center justify-center">
                 <div className="relative mb-8">
-                  <div className="w-24 h-24 border-4 border-zinc-100 border-t-red-500 rounded-full animate-spin" />
+                  <div className="w-24 h-24 border-4 border-surface-container-high border-t-primary rounded-full animate-spin" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Music className="text-red-500 animate-pulse" size={32} />
+                    <span className="material-symbols-outlined text-primary animate-pulse text-[32px]">music_note</span>
                   </div>
                 </div>
-                <h3 className="text-2xl font-display font-bold text-zinc-900 mb-2">DeepSeek AI 正在深度分析中</h3>
-                <p className="text-zinc-400 text-sm animate-pulse mb-4">正在识别 {songs.length} 首歌曲的曲风、情绪与节奏...</p>
+                <h3 className="text-2xl font-display font-bold text-on-surface mb-2">DeepSeek AI 正在深度分析中</h3>
+                <p className="text-outline text-sm animate-pulse mb-4">正在识别 {songs.length} 首歌曲的曲风、情绪与节奏...</p>
                 {progress.total > 0 && (
-                  <div className="w-64 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="w-64 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
                     <motion.div 
-                      className="h-full bg-red-500"
+                      className="h-full bg-primary"
                       initial={{ width: 0 }}
                       animate={{ width: `${(progress.current / progress.total) * 100}%` }}
                       transition={{ duration: 0.5 }}
                     />
-                    <p className="text-[10px] text-zinc-400 mt-2 font-bold uppercase tracking-widest text-center">
+                    <p className="text-[10px] text-outline mt-2 font-bold uppercase tracking-widest text-center">
                       已完成 {progress.current} / {progress.total} 批次
                     </p>
                   </div>
@@ -1126,17 +1142,17 @@ export default function App() {
                 {/* Skeleton Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-16 opacity-40">
                   {[1, 2].map(i => (
-                    <div key={i} className="bg-white rounded-[2rem] p-8 border border-zinc-100 h-64 animate-pulse">
+                    <div key={i} className="glass-card rounded-[2rem] p-8 border border-outline-variant/30 h-64 animate-pulse">
                       <div className="flex justify-between mb-8">
                         <div className="space-y-2">
-                          <div className="h-6 w-32 bg-zinc-100 rounded-lg" />
-                          <div className="h-4 w-48 bg-zinc-50 rounded-lg" />
+                          <div className="h-6 w-32 bg-surface-container-high rounded-lg" />
+                          <div className="h-4 w-48 bg-surface-container rounded-lg" />
                         </div>
-                        <div className="h-10 w-10 bg-zinc-100 rounded-xl" />
+                        <div className="h-10 w-10 bg-surface-container-high rounded-xl" />
                       </div>
                       <div className="space-y-3">
-                        <div className="h-12 w-full bg-zinc-50 rounded-2xl" />
-                        <div className="h-12 w-full bg-zinc-50 rounded-2xl" />
+                        <div className="h-12 w-full bg-surface-container rounded-2xl" />
+                        <div className="h-12 w-full bg-surface-container rounded-2xl" />
                       </div>
                     </div>
                   ))}
@@ -1148,8 +1164,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 border-t border-zinc-100 py-12 text-center">
-        <p className="text-zinc-400 text-sm">© 2026 MusicSorter • Designed by mayicheng • Powered by DeepSeek AI & NetEase API</p>
+      <footer className="mt-20 border-t border-outline-variant/30 py-12 text-center">
+        <p className="text-outline text-sm">© 2026 MusicSorter • Designed by mayicheng • Powered by DeepSeek AI & NetEase API</p>
       </footer>
     </div>
   );

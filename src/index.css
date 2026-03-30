@@ -1,27 +1,106 @@
-@import url('https://fonts.bunny.net/css?family=inter:400,500,600,700|jetbrains-mono:400,500|outfit:500,600,700,800');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-display: "Outfit", sans-serif;
+  --color-surface-container: #1b2026;
+  --color-surface-tint: #dfb7ff;
+  --color-secondary-fixed: #63f7ff;
+  --color-tertiary-fixed-dim: #adc6ff;
+  --color-inverse-surface: #dee3eb;
+  --color-surface-dim: #0f1419;
+  --color-on-secondary-fixed-variant: #004f53;
+  --color-surface-container-high: #252a30;
+  --color-surface-container-highest: #30353b;
+  --color-inverse-primary: #8c00e5;
+  --color-on-error: #690005;
+  --color-on-tertiary-fixed: #001a41;
+  --color-inverse-on-surface: #2c3137;
+  --color-outline-variant: #4e4356;
+  --color-secondary: #e6feff;
+  --color-secondary-container: #00f4fe;
+  --color-surface-container-low: #171c22;
+  --color-surface-bright: #353a40;
+  --color-on-primary: #4b007e;
+  --color-primary-fixed-dim: #dfb7ff;
+  --color-primary: #dfb7ff;
+  --color-primary-fixed: #f1daff;
+  --color-surface-variant: #30353b;
+  --color-on-surface-variant: #d1c1d9;
+  --color-on-primary-container: #f7e5ff;
+  --color-on-surface: #dee3eb;
+  --color-on-secondary: #003739;
+  --color-on-tertiary: #002e68;
+  --color-on-primary-fixed: #2d004f;
+  --color-background: #0f1419;
+  --color-on-primary-fixed-variant: #6b00b0;
+  --color-error-container: #93000a;
+  --color-surface: #0f1419;
+  --color-on-error-container: #ffdad6;
+  --color-secondary-fixed-dim: #00dce5;
+  --color-on-tertiary-fixed-variant: #004493;
+  --color-on-background: #dee3eb;
+  --color-tertiary-fixed: #d8e2ff;
+  --color-on-secondary-container: #006c71;
+  --color-on-tertiary-container: #e4ebff;
+  --color-primary-container: #9d00ff;
+  --color-outline: #9a8ca2;
+  --color-tertiary-container: #0066d6;
+  --color-surface-container-lowest: #0a0f14;
+  --color-tertiary: #adc6ff;
+  --color-error: #ffb4ab;
+  --color-on-secondary-fixed: #002021;
+
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
 }
 
 @layer base {
   body {
-    @apply bg-zinc-50 text-zinc-900 font-sans antialiased selection:bg-red-100 selection:text-red-900;
+    @apply bg-surface text-on-surface font-body selection:bg-primary/30 selection:text-primary;
   }
 }
 
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
 .glass-card {
-  @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-sm;
+  background: rgba(30, 35, 40, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
-
-.neo-shadow {
-  @apply shadow-[0_20px_50px_rgba(0,0,0,0.05)];
+.sonic-glow {
+  box-shadow: 0 0 40px 0 rgba(223, 183, 255, 0.15);
 }
-
-.grid-bg {
-  background-image: radial-gradient(circle at 1px 1px, #e5e5e5 1px, transparent 0);
-  background-size: 40px 40px;
+.hero-gradient {
+  background: radial-gradient(circle at 50% 50%, rgba(157, 0, 255, 0.15) 0%, transparent 70%);
+}
+.sonic-pulse {
+  box-shadow: 0 0 50px rgba(157, 0, 255, 0.3);
+}
+.glass-panel {
+  background: rgba(20, 25, 30, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.sonic-glass {
+  background: rgba(48, 53, 59, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sonic-gradient-primary {
+  background-image: linear-gradient(135deg, #dfb7ff 0%, #9d00ff 100%);
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
 }
